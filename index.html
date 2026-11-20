@@ -19,7 +19,7 @@
     body { background: var(--bg); color: var(--text); min-height: 100vh; }
     .hidden { display: none !important; }
     button { cursor: pointer; font-family: inherit; border: none; }
-    input, select { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); font-size: 15px; }
+    input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); font-size: 15px; }
     label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 
     /* LOGIN */
@@ -47,22 +47,22 @@
     .emp-date { font-size: 15px; color: var(--muted); font-weight: 600; }
     .emp-info { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
     .emp-name { font-size: 19px; font-weight: 800; }
+    .shift-banner { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; text-align: center; }
+    .shift-active { border-color: var(--green); background: #F0FDF4; color: #14532D; }
     .gps-box { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 16px; font-size: 15px; }
     .gps-ok { border-color: var(--green); background: #F0FDF4; color: #14532D; }
-    .gps-warn { border-color: #D97706; background: #FFFBEB; color: #78350F; }
+    .gps-err { border-color: var(--red); background: #FEF2F2; color: #991B1B; }
+    .dl-box { background: #EFF6FF; border: 2px solid var(--blue); border-radius: 14px; padding: 16px; margin-bottom: 16px; color: #1E3A8A; }
     .big-btn { width: 100%; padding: 22px 16px; border-radius: 16px; color: #FFF; font-size: 21px; font-weight: 900; display: block; text-align: center; margin-bottom: 14px; }
     .big-btn small { display: block; font-size: 14px; font-weight: 500; opacity: 0.92; margin-top: 4px; }
     .btn-masuk { background: var(--green); }
     .btn-pulang { background: var(--primary); }
+    .btn-dl { background: var(--blue); }
     .big-btn:disabled { background: #9CA3AF; cursor: not-allowed; }
-    .status-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-    .status-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
-    .status-box span { display: block; font-size: 12px; font-weight: 700; color: var(--muted); }
-    .status-box strong { display: block; font-size: 20px; margin-top: 4px; }
 
     /* DASHBOARD HR */
     .hr-layout { display: flex; min-height: 100vh; }
-    .sidebar { width: 250px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 20px 16px; display: flex; flex-direction: column; justify-content: space-between; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+    .sidebar { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 22px 18px; display: flex; flex-direction: column; justify-content: space-between; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
     .nav-section { font-size: 11px; font-weight: 700; color: var(--muted); margin: 18px 8px 8px; text-transform: uppercase; }
     .nav-item { width: 100%; text-align: left; padding: 11px 12px; border-radius: 8px; background: transparent; color: var(--text); font-size: 13px; font-weight: 700; margin-bottom: 4px; }
     .nav-item:hover { background: var(--bg); }
@@ -82,6 +82,7 @@
     th { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--muted); }
     .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
     .b-green { background: #DCFCE7; color: #166534; }
+    .b-blue { background: #DBEAFE; color: #1E40AF; }
     .b-orange { background: #FFEDD5; color: #9A3412; }
     .b-red { background: #FEE2E2; color: #991B1B; }
     .b-gray { background: #E5E7EB; color: #374151; }
@@ -159,11 +160,13 @@
     </div>
   </div>
 
-  <div class="status-strip">
-    <div class="status-box"><span>ABSEN MASUK</span><strong id="st-masuk" style="color:var(--green)">--:--</strong></div>
-    <div class="status-box"><span>ABSEN PULANG</span><strong id="st-pulang" style="color:var(--primary)">--:--</strong></div>
+  <!-- Status Shift Aktif (Mendukung Double Shift & Satpam Shift Malam) -->
+  <div id="shift-banner" class="shift-banner">
+    <strong id="shift-title" style="font-size:16px;">Status: Siap Absen Masuk</strong>
+    <div id="shift-sub" style="font-size:13px; color:var(--muted); margin-top:4px;">Belum ada shift berjalan</div>
   </div>
 
+  <!-- Status GPS -->
   <div id="gps-box" class="gps-box">
     <strong id="gps-title">Mencari Lokasi GPS...</strong>
     <div id="gps-desc" style="font-size:13px; margin-top:4px;">Pastikan Lokasi/GPS HP menyala.</div>
@@ -173,15 +176,32 @@
   <div id="emp-msg" class="alert hidden"></div>
   <input type="file" id="camera-input" accept="image/*" capture="user" class="hidden" onchange="onPhotoCaptured(event)" />
 
-  <button id="btn-masuk" class="big-btn btn-masuk" onclick="startAbsen('MASUK')">
-    ABSEN MASUK
-    <small>Tekan untuk foto selfie & catat masuk</small>
-  </button>
+  <!-- TOMBOL ABSEN NORMAL (Hanya aktif jika di dalam radius kantor) -->
+  <div id="box-normal">
+    <button id="btn-masuk" class="big-btn btn-masuk" onclick="startAbsen('MASUK', false)">
+      ABSEN MASUK
+      <small>Tekan untuk foto selfie & mulai kerja</small>
+    </button>
+    <button id="btn-pulang" class="big-btn btn-pulang hidden" onclick="startAbsen('KELUAR', false)">
+      ABSEN PULANG
+      <small>Tekan untuk foto selfie & selesai kerja</small>
+    </button>
+  </div>
 
-  <button id="btn-pulang" class="big-btn btn-pulang" onclick="startAbsen('KELUAR')">
-    ABSEN PULANG
-    <small>Tekan saat selesai jam kerja</small>
-  </button>
+  <!-- MENU DINAS LUAR (Otomatis muncul saat di luar radius kantor) -->
+  <div id="box-dinas-luar" class="dl-box hidden">
+    <strong style="font-size:16px; display:block; margin-bottom:6px;">MENU DINAS LUAR</strong>
+    <div style="font-size:13px; margin-bottom:10px;">Absensi kantor ditolak karena Anda berada di luar lokasi. Isi tujuan/keterangan di bawah untuk absen Dinas Luar:</div>
+    <input type="text" id="dl-ket" placeholder="Contoh: Antar berkas ke Kejari / Tugas lapangan" style="margin-bottom:12px;" />
+    <button id="btn-dl-masuk" class="big-btn btn-dl" style="margin-bottom:0;" onclick="startAbsen('MASUK', true)">
+      DINAS LUAR (MASUK)
+      <small>Foto selfie & catat jam masuk dinas luar</small>
+    </button>
+    <button id="btn-dl-pulang" class="big-btn btn-dl hidden" style="margin-bottom:0;" onclick="startAbsen('KELUAR', true)">
+      DINAS LUAR (PULANG)
+      <small>Foto selfie & selesai dinas luar</small>
+    </button>
+  </div>
 
   <button class="btn-outline" style="width:100%; padding:12px;" onclick="logoutEmp()">Keluar Akun</button>
 </div>
@@ -226,7 +246,7 @@
         </div>
         <div class="kpi-grid">
           <div class="card"><div class="kpi-label">Karyawan Aktif</div><div id="k-emp" class="kpi-val">0</div></div>
-          <div class="card"><div class="kpi-label">Hadir Hari Ini</div><div id="k-hadir" class="kpi-val" style="color:var(--green)">0</div></div>
+          <div class="card"><div class="kpi-label">Absensi Hari Ini</div><div id="k-hadir" class="kpi-val" style="color:var(--green)">0</div></div>
           <div class="card"><div class="kpi-label">BPJS Perlu Tindakan</div><div id="k-bpjs" class="kpi-val" style="color:var(--primary)">0</div></div>
           <div class="card"><div class="kpi-label">Titik Penempatan</div><div id="k-loc" class="kpi-val">0</div></div>
         </div>
@@ -244,7 +264,14 @@
             <button class="btn-outline" onclick="exportAttendanceCSV()">Export CSV</button>
           </div>
         </div>
-        <div class="card"><div class="table-wrap"><table><thead><tr><th>Karyawan</th><th>Lokasi</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Foto</th></tr></thead><tbody id="absen-body"></tbody></table></div></div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Karyawan</th><th>Lokasi</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Keterangan</th><th>Foto</th></tr></thead>
+              <tbody id="absen-body"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <section id="page-bpjs" class="hidden">
@@ -297,7 +324,6 @@
             <div class="form-group"><label>Nama Perusahaan</label><input id="s-comp" required /></div>
             <div class="form-group"><label>Sub-Judul</label><input id="s-sub" required /></div>
             <div class="form-group"><label>Warna Aksen</label><input id="s-col" type="color" style="height:44px; padding:4px;" /></div>
-            <div class="form-group"><label>Jam Masuk (WIB)</label><input id="s-in" type="time" required /></div>
             <div class="form-group"><label>Link Kurir Foto Google Drive</label><input id="s-drv" placeholder="https://script.google.com/macros/s/.../exec" /></div>
             <button type="submit" class="btn-primary">Simpan Pengaturan</button>
           </form>
@@ -308,7 +334,7 @@
 </div>
 
 <script>
-  var empSession = null, currentGPS = null, pendingAbsenType = null;
+  var empSession = null, currentGPS = null, pendingAbsenType = null, pendingIsDL = false;
   var hrCache = { employees: [], locations: [], bpjs: [], attendance: [] };
 
   window.onload = function() {
@@ -331,7 +357,6 @@
   function loadBranding() {
     sb.rpc('hris_get_public_branding').then(function(r) {
       if (r.data && r.data.company_name) applyBranding(r.data);
-      else sb.rpc('hris_get_public_settings').then(function(r2){ if (r2.data) applyBranding(r2.data); });
     });
   }
 
@@ -362,12 +387,9 @@
     var btn = document.getElementById('btn-emp-login');
     if (!silent) { btn.disabled = true; btn.textContent = 'Memeriksa...'; }
     sb.rpc('hris_emp_login', { p_nik: nik, p_pin: pin }).then(function(res) {
-      if (res.error) return sb.rpc('hris_employee_login', { p_nik: nik, p_pin: pin });
-      return res;
-    }).then(function(res) {
       if (!silent) { btn.disabled = false; btn.textContent = 'MASUK ABSENSI'; }
       var d = res.data;
-      if (res.error || !d || (d.ok !== true && d.status !== 'success')) {
+      if (res.error || !d || !d.ok) {
         if (!silent) showLoginErr(d && d.message ? d.message : 'ID atau PIN salah.');
         return;
       }
@@ -378,17 +400,46 @@
       document.getElementById('view-emp').classList.remove('hidden');
       document.getElementById('emp-name').textContent = d.employee.nama_lengkap;
       document.getElementById('emp-loc-label').textContent = d.location ? ('Penempatan: ' + d.location.nama_lokasi + ' (' + d.location.kota + ')') : 'Penempatan: Belum diatur HR';
-      renderEmpToday(d.today || d.today_attendance);
+      updateEmpButtons();
       startClock();
       refreshGPS();
     });
   }
 
-  function renderEmpToday(t) {
-    document.getElementById('st-masuk').textContent = (t && t.jam_masuk) ? formatTimeWIB(t.jam_masuk) : '--:--';
-    document.getElementById('st-pulang').textContent = (t && t.jam_pulang) ? formatTimeWIB(t.jam_pulang) : '--:--';
-    document.getElementById('btn-masuk').disabled = !!(t && t.jam_masuk);
-    document.getElementById('btn-pulang').disabled = !(t && t.jam_masuk) || !!(t && t.jam_pulang);
+  // Atur tombol sesuai Shift Aktif & Posisi GPS (Tolak otomatis di luar radius -> wajib Dinas Luar)
+  function updateEmpButtons() {
+    var active = empSession.data.active_shift;
+    var doneCount = empSession.data.today_done || 0;
+    var banner = document.getElementById('shift-banner');
+    var sTitle = document.getElementById('shift-title');
+    var sSub = document.getElementById('shift-sub');
+
+    if (active) {
+      banner.className = 'shift-banner shift-active';
+      sTitle.textContent = 'Sedang Bekerja (Masuk: ' + formatTimeWIB(active.jam_masuk) + ')';
+      sSub.textContent = 'Tekan ABSEN PULANG saat selesai bertugas';
+    } else {
+      banner.className = 'shift-banner';
+      sTitle.textContent = 'Siap Absen Masuk';
+      sSub.textContent = doneCount > 0 ? ('Sudah selesai ' + doneCount + ' shift hari ini (Bisa masuk shift berikutnya)') : 'Belum ada shift berjalan';
+    }
+
+    var isOutside = currentGPS && !currentGPS.inRadius;
+    document.getElementById('box-normal').classList.toggle('hidden', !!isOutside);
+    document.getElementById('box-dinas-luar').classList.toggle('hidden', !isOutside);
+
+    // Tampilkan tombol Masuk atau Pulang sesuai shift aktif
+    document.getElementById('btn-masuk').classList.toggle('hidden', !!active);
+    document.getElementById('btn-pulang').classList.toggle('hidden', !active);
+    document.getElementById('btn-dl-masuk').classList.toggle('hidden', !!active);
+    document.getElementById('btn-dl-pulang').classList.toggle('hidden', !active);
+
+    // Kunci tombol sebelum GPS terbaca
+    var noGps = !currentGPS;
+    document.getElementById('btn-masuk').disabled = noGps;
+    document.getElementById('btn-pulang').disabled = noGps;
+    document.getElementById('btn-dl-masuk').disabled = noGps;
+    document.getElementById('btn-dl-pulang').disabled = noGps;
   }
 
   function formatTimeWIB(iso) {
@@ -396,7 +447,18 @@
     return new Date(iso).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' });
   }
 
+  function formatPulangWithDay(masukIso, pulangIso) {
+    if (!pulangIso) return '-';
+    var dIn = new Date(new Date(masukIso).getTime() + 7*3600*1000).toISOString().slice(0,10);
+    var dOut = new Date(new Date(pulangIso).getTime() + 7*3600*1000).toISOString().slice(0,10);
+    var jam = formatTimeWIB(pulangIso);
+    return dOut !== dIn ? (jam + ' (+1 hr)') : jam;
+  }
+
+  var clockStarted = false;
   function startClock() {
+    if (clockStarted) return;
+    clockStarted = true;
     function tick() {
       var n = new Date();
       document.getElementById('emp-clock').textContent = n.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -414,17 +476,18 @@
   function refreshGPS() {
     var box = document.getElementById('gps-box'), title = document.getElementById('gps-title'), desc = document.getElementById('gps-desc');
     box.className = 'gps-box'; title.textContent = 'Mencari titik GPS...'; desc.textContent = 'Mohon tunggu sebentar.';
-    if (!navigator.geolocation) { box.className = 'gps-box gps-warn'; title.textContent = 'HP tidak mendukung GPS'; return; }
+    if (!navigator.geolocation) { box.className = 'gps-box gps-err'; title.textContent = 'HP tidak mendukung GPS'; return; }
     navigator.geolocation.getCurrentPosition(function(pos) {
       var loc = empSession.data.location;
       var jarak = loc ? calcDistance(pos.coords.latitude, pos.coords.longitude, loc.latitude, loc.longitude) : 0;
       var inRad = !loc || jarak <= loc.radius_meter;
       currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, jarak: jarak, inRadius: inRad };
-      box.className = 'gps-box ' + (inRad ? 'gps-ok' : 'gps-warn');
-      title.textContent = inRad ? 'Lokasi Sesuai (Siap Absen)' : ('Di Luar Radius (' + jarak + ' meter)');
-      desc.textContent = loc ? ('Jarak: ' + jarak + ' m (batas ' + loc.radius_meter + ' m)') : 'GPS aktif.';
+      box.className = 'gps-box ' + (inRad ? 'gps-ok' : 'gps-err');
+      title.textContent = inRad ? 'Di Dalam Area Kantor (Siap Absen)' : ('Di Luar Area Kantor (' + jarak + ' meter)');
+      desc.textContent = loc ? (inRad ? ('Jarak: ' + jarak + ' m (batas ' + loc.radius_meter + ' m)') : ('Absensi normal ditolak. Gunakan MENU DINAS LUAR di bawah.')) : 'GPS aktif.';
+      updateEmpButtons();
     }, function() {
-      box.className = 'gps-box gps-warn'; title.textContent = 'GPS Gagal Terbaca'; desc.textContent = 'Nyalakan GPS dan izinkan browser mengakses lokasi.';
+      box.className = 'gps-box gps-err'; title.textContent = 'GPS Gagal Terbaca'; desc.textContent = 'Nyalakan GPS HP dan izinkan browser mengakses lokasi.';
     }, { enableHighAccuracy: true, timeout: 15000 });
   }
 
@@ -433,11 +496,20 @@
     el.textContent = msg; el.className = 'alert ' + (ok ? 'alert-ok' : 'alert-err'); el.classList.remove('hidden');
   }
 
-  function startAbsen(tipe) {
+  function startAbsen(tipe, isDinasLuar) {
     document.getElementById('emp-msg').classList.add('hidden');
     if (!currentGPS) { showEmpMsg('Tunggu GPS terbaca dulu.', false); return; }
-    if (!currentGPS.inRadius && !confirm('Anda di luar radius (' + currentGPS.jarak + ' m). Lanjutkan sebagai Dinas Luar?')) return;
+    if (!isDinasLuar && !currentGPS.inRadius) {
+      showEmpMsg('DITOLAK: Anda di luar area kantor. Wajib gunakan menu DINAS LUAR.', false);
+      updateEmpButtons();
+      return;
+    }
+    if (isDinasLuar && !document.getElementById('dl-ket').value.trim()) {
+      showEmpMsg('Isi keterangan/tujuan Dinas Luar terlebih dahulu.', false);
+      return;
+    }
     pendingAbsenType = tipe;
+    pendingIsDL = isDinasLuar;
     var inp = document.getElementById('camera-input'); inp.value = ''; inp.click();
   }
 
@@ -472,24 +544,36 @@
   function onPhotoCaptured(e) {
     var file = e.target.files[0]; if (!file) return;
     showEmpMsg('Mengirim foto & menyimpan absensi... Mohon tunggu.', true);
-    document.getElementById('btn-masuk').disabled = true; document.getElementById('btn-pulang').disabled = true;
+    ['btn-masuk','btn-pulang','btn-dl-masuk','btn-dl-pulang'].forEach(function(id){ document.getElementById(id).disabled = true; });
+
     compressImage(file, function(base64) {
       var webhook = empSession.data.settings ? empSession.data.settings.drive_webhook_url : '';
-      var locName = empSession.data.location ? empSession.data.location.nama_lokasi : 'Tanpa_Lokasi';
+      var locName = pendingIsDL ? 'DINAS_LUAR' : (empSession.data.location ? empSession.data.location.nama_lokasi : 'Tanpa_Lokasi');
+      var ket = pendingIsDL ? ('[DINAS LUAR] ' + document.getElementById('dl-ket').value.trim()) : '';
+
       function saveDb(fotoUrl) {
-        var params = { p_nik: empSession.nik, p_pin: empSession.pin, p_tipe: pendingAbsenType, p_lat: currentGPS.lat, p_lng: currentGPS.lng, p_jarak: currentGPS.jarak, p_foto_url: fotoUrl, p_keterangan: currentGPS.inRadius ? '' : ('Dinas Luar ' + currentGPS.jarak + 'm') };
-        sb.rpc('hris_emp_submit_attendance', params).then(function(res){
-          if (res.error) return sb.rpc('hris_submit_attendance', params);
-          return res;
+        sb.rpc('hris_emp_submit_attendance', {
+          p_nik: empSession.nik, p_pin: empSession.pin, p_tipe: pendingAbsenType,
+          p_lat: currentGPS.lat, p_lng: currentGPS.lng, p_jarak: currentGPS.jarak,
+          p_foto_url: fotoUrl, p_keterangan: ket
         }).then(function(res) {
           var d = res.data;
-          if (res.error || !d || (d.ok !== true && d.status !== 'success')) { showEmpMsg(d && d.message ? d.message : 'Gagal simpan absen', false); return; }
-          showEmpMsg('BERHASIL! Absen ' + pendingAbsenType + ' tercatat.', true);
+          if (res.error || !d || !d.ok) {
+            showEmpMsg(d && d.message ? d.message : 'Gagal simpan absen', false);
+            updateEmpButtons();
+            return;
+          }
+          document.getElementById('dl-ket').value = '';
+          showEmpMsg('BERHASIL! ' + (pendingIsDL ? 'Dinas Luar ' : 'Absen ') + pendingAbsenType + ' tercatat.', true);
           callEmpLogin(empSession.nik, empSession.pin, true);
         });
       }
+
       if (webhook && webhook.indexOf('script.google.com') !== -1) {
-        uploadDrive(webhook, { secret: DRIVE_SECRET, lokasi: locName, tipe: pendingAbsenType, namaKaryawan: empSession.data.employee.nama_lengkap, imageBase64: base64 }, 1, function(err, url){ saveDb(err ? '' : url); });
+        uploadDrive(webhook, {
+          secret: DRIVE_SECRET, lokasi: locName, tipe: pendingAbsenType,
+          namaKaryawan: empSession.data.employee.nama_lengkap, imageBase64: base64
+        }, 1, function(err, url){ saveDb(err ? '' : url); });
       } else saveDb('');
     });
   }
@@ -537,7 +621,6 @@
         document.getElementById('s-comp').value = s.company_name || '';
         document.getElementById('s-sub').value = s.app_subtitle || '';
         document.getElementById('s-col').value = s.primary_color || '#EA580C';
-        document.getElementById('s-in').value = (s.default_check_in || '08:00').slice(0,5);
         document.getElementById('s-drv').value = s.drive_webhook_url || '';
       }
       hrCache.locations = r[1].data || []; hrCache.employees = r[2].data || []; hrCache.bpjs = r[3].data || [];
@@ -569,7 +652,8 @@
   }
 
   function badgeStatus(st) {
-    if (st === 'AKTIF') return '<span class="badge b-green">AKTIF</span>';
+    if (st === 'AKTIF' || st === 'HADIR') return '<span class="badge b-green">' + st + '</span>';
+    if (st === 'DINAS_LUAR') return '<span class="badge b-blue">DINAS LUAR</span>';
     if (st === 'PERLU_NONAKTIF' || st === 'BELUM_DAFTAR') return '<span class="badge b-red">' + st + '</span>';
     if (st === 'PROSES_DAFTAR') return '<span class="badge b-orange">' + st + '</span>';
     return '<span class="badge b-gray">' + st + '</span>';
@@ -599,10 +683,11 @@
       hrCache.attendance.forEach(function(a) {
         var emp = a.hris_employees || {};
         var loc = (emp.hris_locations && emp.hris_locations.nama_lokasi) ? emp.hris_locations.nama_lokasi : '-';
+        var st = (a.status === 'DINAS_LUAR') ? 'DINAS_LUAR' : 'HADIR';
         var foto = (a.foto_masuk_url ? '<a href="'+a.foto_masuk_url+'" target="_blank" style="color:var(--primary);margin-right:8px;">Masuk</a>' : '') + (a.foto_pulang_url ? '<a href="'+a.foto_pulang_url+'" target="_blank" style="color:var(--blue);">Pulang</a>' : '');
-        html += '<tr><td><strong>' + (emp.nama_lengkap||'-') + '</strong></td><td>' + loc + '</td><td>' + formatTimeWIB(a.jam_masuk) + '</td><td>' + formatTimeWIB(a.jam_pulang) + '</td><td>' + badgeStatus(a.status==='HADIR'?'AKTIF':a.status) + '</td><td>' + (foto||'-') + '</td></tr>';
+        html += '<tr><td><strong>' + (emp.nama_lengkap||'-') + '</strong></td><td>' + loc + '</td><td>' + formatTimeWIB(a.jam_masuk) + '</td><td>' + formatPulangWithDay(a.jam_masuk, a.jam_pulang) + '</td><td>' + badgeStatus(st) + '</td><td>' + (a.keterangan || '-') + '</td><td>' + (foto||'-') + '</td></tr>';
       });
-      document.getElementById('absen-body').innerHTML = html || '<tr><td colspan="6">Belum ada absensi.</td></tr>';
+      document.getElementById('absen-body').innerHTML = html || '<tr><td colspan="7">Belum ada absensi.</td></tr>';
     });
   }
 
@@ -613,12 +698,16 @@
 
   function addEmployee(e) {
     e.preventDefault();
-    var base = { nik_karyawan: document.getElementById('f-nik').value.trim().toUpperCase(), nama_lengkap: document.getElementById('f-nama').value.trim(), nik_ktp: document.getElementById('f-ktp').value.trim(), kategori: document.getElementById('f-kat').value, jabatan: document.getElementById('f-jab').value.trim(), location_id: document.getElementById('f-loc').value || null };
     var pin = document.getElementById('f-pin').value.trim();
-    sb.from('hris_employees').insert([Object.assign({ pin: pin }, base)]).select().single().then(function(r) {
-      if (r.error) return sb.from('hris_employees').insert([Object.assign({ pin_code: pin }, base)]).select().single();
-      return r;
-    }).then(function(r) {
+    sb.from('hris_employees').insert([{
+      nik_karyawan: document.getElementById('f-nik').value.trim().toUpperCase(),
+      nama_lengkap: document.getElementById('f-nama').value.trim(),
+      nik_ktp: document.getElementById('f-ktp').value.trim(),
+      kategori: document.getElementById('f-kat').value,
+      jabatan: document.getElementById('f-jab').value.trim(),
+      location_id: document.getElementById('f-loc').value || null,
+      pin_code: pin, pin: pin
+    }]).select().single().then(function(r) {
       if (r.error) { alert(r.error.message); return; }
       sb.from('hris_bpjs').insert([{ employee_id: r.data.id }]).then(function(){ e.target.reset(); document.getElementById('f-pin').value='123456'; loadHrData(); });
     });
@@ -642,7 +731,12 @@
 
   function saveSettings(e) {
     e.preventDefault();
-    sb.from('hris_settings').update({ company_name: document.getElementById('s-comp').value.trim(), app_subtitle: document.getElementById('s-sub').value.trim(), primary_color: document.getElementById('s-col').value, default_check_in: document.getElementById('s-in').value + ':00', drive_webhook_url: document.getElementById('s-drv').value.trim() }).eq('id', 1).then(function(r){ if(r.error) alert(r.error.message); else { alert('Tersimpan!'); loadHrData(); } });
+    sb.from('hris_settings').update({
+      company_name: document.getElementById('s-comp').value.trim(),
+      app_subtitle: document.getElementById('s-sub').value.trim(),
+      primary_color: document.getElementById('s-col').value,
+      drive_webhook_url: document.getElementById('s-drv').value.trim()
+    }).eq('id', 1).then(function(r){ if(r.error) alert(r.error.message); else { alert('Tersimpan!'); loadHrData(); } });
   }
 
   function downloadCSV(name, rows) {
@@ -655,8 +749,8 @@
     downloadCSV('kontrol_bpjs_'+getTodayWIB()+'.csv', rows);
   }
   function exportAttendanceCSV() {
-    var tgl = document.getElementById('filter-date').value, rows = [['Tanggal','ID','Nama','Lokasi','Masuk','Pulang','Status','Foto Masuk','Foto Pulang']];
-    hrCache.attendance.forEach(function(a){ var e=a.hris_employees||{}, l=e.hris_locations?e.hris_locations.nama_lokasi:'-'; rows.push([tgl,e.nik_karyawan,e.nama_lengkap,l,formatTimeWIB(a.jam_masuk),formatTimeWIB(a.jam_pulang),a.status,a.foto_masuk_url,a.foto_pulang_url]); });
+    var tgl = document.getElementById('filter-date').value, rows = [['Tanggal','ID','Nama','Lokasi','Masuk','Pulang','Status','Keterangan','Foto Masuk','Foto Pulang']];
+    hrCache.attendance.forEach(function(a){ var e=a.hris_employees||{}, l=e.hris_locations?e.hris_locations.nama_lokasi:'-'; rows.push([tgl,e.nik_karyawan,e.nama_lengkap,l,formatTimeWIB(a.jam_masuk),formatPulangWithDay(a.jam_masuk,a.jam_pulang),a.status==='DINAS_LUAR'?'DINAS_LUAR':'HADIR',a.keterangan||'',a.foto_masuk_url,a.foto_pulang_url]); });
     downloadCSV('absensi_'+tgl+'.csv', rows);
   }
 </script>
