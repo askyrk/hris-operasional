@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>White-Label HRIS</title>
+  <title>Presensi Karyawan</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -19,21 +19,18 @@
     body { background: var(--bg); color: var(--text); min-height: 100vh; }
     .hidden { display: none !important; }
     button { cursor: pointer; font-family: inherit; border: none; }
-    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); font-size: 14px; }
-    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+    input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); font-size: 15px; }
+    label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
 
     /* LOGIN */
-    .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
-    .login-card { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
-    .brand-tag { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
-    .brand-dot { width: 10px; height: 10px; background: var(--primary); border-radius: 2px; display: inline-block; }
-    .login-title { font-size: 22px; font-weight: 800; margin-top: 6px; }
-    .login-sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
-    .tab-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--bg); padding: 4px; border-radius: 10px; margin-bottom: 18px; }
-    .tab-btn { padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; background: transparent; color: var(--muted); }
-    .tab-btn.active { background: var(--text); color: var(--card); }
-    .form-group { margin-bottom: 12px; }
-    .btn-primary { width: 100%; padding: 13px; border-radius: 10px; background: var(--primary); color: #FFF; font-size: 15px; font-weight: 700; }
+    .login-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 16px; }
+    .login-card { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 26px 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+    .brand-tag { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+    .brand-dot { width: 10px; height: 10px; background: var(--primary); border-radius: 2px; display: inline-block; flex-shrink: 0; }
+    .login-title { font-size: 24px; font-weight: 900; margin-top: 8px; letter-spacing: -0.01em; }
+    .login-sub { font-size: 14px; color: var(--muted); margin: 4px 0 22px; }
+    .form-group { margin-bottom: 14px; }
+    .btn-primary { width: 100%; padding: 14px; border-radius: 10px; background: var(--primary); color: #FFF; font-size: 16px; font-weight: 800; letter-spacing: 0.02em; }
     .btn-dark { padding: 9px 14px; border-radius: 8px; background: var(--text); color: var(--card); font-size: 13px; font-weight: 700; }
     .btn-outline { padding: 8px 12px; border-radius: 8px; background: transparent; border: 1px solid var(--border); color: var(--text); font-size: 12px; font-weight: 600; }
     .btn-ok { padding: 6px 10px; border-radius: 6px; background: var(--green); color: #FFF; font-size: 12px; font-weight: 700; }
@@ -41,6 +38,10 @@
     .alert { padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; font-weight: 600; }
     .alert-err { background: #FEE2E2; color: #991B1B; }
     .alert-ok { background: #DCFCE7; color: #166534; }
+    .login-help { margin-top: 16px; text-align: center; font-size: 13px; color: var(--muted); }
+    .login-help a { color: var(--green); font-weight: 700; text-decoration: none; }
+    .subtle-link { margin-top: 18px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; padding: 6px 12px; opacity: 0.8; }
+    .subtle-link:hover { opacity: 1; text-decoration: underline; }
 
     /* HP KARYAWAN */
     .emp-wrap { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
@@ -145,44 +146,47 @@
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 </script>
 
-<!-- 1. LOGIN -->
+<!-- 1. HALAMAN LOGIN (FOKUS KARYAWAN + PINTU ADMIN TERPISAH) -->
 <div id="view-login" class="login-wrap">
   <div class="login-card">
-    <div class="brand-tag"><span class="brand-dot"></span> WHITE-LABEL HRIS</div>
-    <div id="login-company" class="login-title">HRIS Operasional</div>
-    <div id="login-sub" class="login-sub">Human Resource & Operations</div>
-
-    <div class="tab-row">
-      <button id="tab-emp" class="tab-btn active" onclick="switchLoginTab('emp')">Presensi Karyawan</button>
-      <button id="tab-hr" class="tab-btn" onclick="switchLoginTab('hr')">Admin / HR</button>
-    </div>
+    <div class="brand-tag"><span class="brand-dot"></span> <span id="login-company">PORTAL PRESENSI</span></div>
+    <div id="login-title" class="login-title">Presensi Karyawan</div>
+    <div id="login-sub" class="login-sub">Silakan masuk dengan NIK dan PIN Anda.</div>
 
     <div id="login-msg" class="alert alert-err hidden"></div>
 
+    <!-- Form Karyawan -->
     <form id="form-emp-login" onsubmit="handleEmpLogin(event)">
       <div class="form-group">
-        <label>NIK KTP (16 Digit)</label>
-        <input type="text" id="emp-nik" placeholder="Masukkan NIK KTP" required />
+        <label>Nomor KTP (NIK)</label>
+        <input type="text" id="emp-nik" inputmode="numeric" placeholder="Masukkan 16 angka NIK" required />
       </div>
       <div class="form-group">
-        <label>PIN (Standar: 6 Angka Terakhir NIK)</label>
-        <input type="password" id="emp-pin" inputmode="numeric" placeholder="Masukkan 6 angka PIN" required />
+        <label>PIN (6 Angka)</label>
+        <input type="password" id="emp-pin" inputmode="numeric" maxlength="6" placeholder="Masukkan 6 angka PIN" required />
       </div>
-      <button type="submit" id="btn-emp-login" class="btn-primary">MASUK PRESENSI</button>
+      <button type="submit" id="btn-emp-login" class="btn-primary">MASUK</button>
+      <div id="login-help-wa" class="login-help hidden">
+        Lupa PIN atau butuh bantuan? <a href="#" onclick="openLoginHelpWa(event)">Hubungi Admin</a>
+      </div>
     </form>
 
+    <!-- Form Admin / HR (Tersembunyi, muncul via link bawah atau /#admin) -->
     <form id="form-hr-login" class="hidden" onsubmit="handleHrLogin(event)">
-      <div class="form-group"><label>Email HR</label><input type="email" id="hr-email" placeholder="nama@email.com" required /></div>
+      <div class="form-group"><label>Email Admin / HR</label><input type="email" id="hr-email" placeholder="nama@email.com" required /></div>
       <div class="form-group"><label>Password</label><input type="password" id="hr-pass" placeholder="Password akun HR" required /></div>
       <button type="submit" id="btn-hr-login" class="btn-primary">MASUK DASHBOARD HR</button>
     </form>
   </div>
+
+  <button id="link-to-hr" class="subtle-link" onclick="setLoginMode('hr')">Masuk sebagai Admin / HR →</button>
+  <button id="link-to-emp" class="subtle-link hidden" onclick="setLoginMode('emp')">← Kembali ke Presensi Karyawan</button>
 </div>
 
 <!-- 2. PRESENSI KARYAWAN (HP) -->
 <div id="view-emp" class="emp-wrap hidden">
   <div class="emp-header">
-    <div class="brand-tag"><span class="brand-dot"></span> <span id="emp-company">HRIS</span></div>
+    <div class="brand-tag"><span class="brand-dot"></span> <span id="emp-company">PRESENSI</span></div>
     <div id="emp-clock" class="emp-clock">00:00:00</div>
     <div id="emp-date" class="emp-date">-</div>
     <div class="emp-info">
@@ -205,7 +209,6 @@
   <div id="emp-msg" class="alert hidden"></div>
   <input type="file" id="camera-input" accept="image/*" capture="user" class="hidden" onchange="onPhotoCaptured(event)" />
 
-  <!-- TOMBOL PRESENSI NORMAL -->
   <div id="box-normal">
     <button id="btn-masuk" class="big-btn btn-masuk" onclick="startPresensi('MASUK', false)">
       PRESENSI MASUK
@@ -217,7 +220,6 @@
     </button>
   </div>
 
-  <!-- MENU DINAS LUAR -->
   <div id="box-dinas-luar" class="dl-box hidden">
     <strong style="font-size:16px; display:block; margin-bottom:6px;">MENU DINAS LUAR</strong>
     <div style="font-size:13px; margin-bottom:10px;">Presensi kantor ditolak karena Anda di luar lokasi. Isi tujuan di bawah untuk presensi Dinas Luar:</div>
@@ -232,7 +234,6 @@
     </button>
   </div>
 
-  <!-- MENU LIPAT 1: RIWAYAT PRESENSI 14 HARI -->
   <button class="menu-btn" onclick="toggleBox('box-emp-hist')">
     <span>Lihat Riwayat Presensi (14 Hari)</span><span>▾</span>
   </button>
@@ -240,7 +241,6 @@
     <div id="emp-hist-list">Belum ada riwayat presensi.</div>
   </div>
 
-  <!-- MENU LIPAT 2: IZIN / SAKIT / LUPA PRESENSI -->
   <button class="menu-btn" onclick="toggleBox('box-req-form')">
     <span>Ajukan Izin / Sakit / Lupa Presensi</span><span>▾</span>
   </button>
@@ -268,7 +268,6 @@
     <div id="emp-req-list"></div>
   </div>
 
-  <!-- MENU LIPAT 3: PENGATURAN AKUN, GANTI PIN & KELUAR (AMAN DARI KEPENCET) -->
   <button class="menu-btn" onclick="toggleBox('box-pin-form')">
     <span>Pengaturan Akun & Ganti PIN</span><span>▾</span>
   </button>
@@ -284,7 +283,6 @@
     </div>
   </div>
 
-  <!-- TOMBOL LAPOR KENDALA WA (OTOMATIS MUNCUL JIKA WA ADMIN DIISI DI PENGATURAN) -->
   <button id="btn-wa-admin" class="btn-wa hidden" onclick="openWaAdmin()">
     Lapor Kendala ke Admin (WhatsApp)
   </button>
@@ -324,7 +322,6 @@
     </aside>
 
     <main class="main">
-      <!-- 01 DASHBOARD -->
       <section id="page-dash">
         <div class="page-head">
           <div><div class="page-kicker">01 — RINGKASAN</div><div class="page-title">DASHBOARD HRIS</div></div>
@@ -342,7 +339,6 @@
         </div>
       </section>
 
-      <!-- 02 PRESENSI HARIAN & REKAP BULANAN -->
       <section id="page-pres" class="hidden">
         <div class="page-head">
           <div><div class="page-kicker">02 — KEHADIRAN</div><div class="page-title">PRESENSI & REKAP</div></div>
@@ -387,7 +383,6 @@
         </div>
       </section>
 
-      <!-- 03 PENGAJUAN & IZIN -->
       <section id="page-req" class="hidden">
         <div class="page-head">
           <div><div class="page-kicker">03 — PERSETUJUAN BERKALA</div><div class="page-title">PENGAJUAN & IZIN</div></div>
@@ -406,7 +401,6 @@
         </div>
       </section>
 
-      <!-- 04 KONTROL BPJS -->
       <section id="page-bpjs" class="hidden">
         <div class="page-head">
           <div><div class="page-kicker">04 — KEPESERTAAN (e-DABU & SIPP)</div><div class="page-title">KONTROL BPJS</div></div>
@@ -430,7 +424,6 @@
         </div>
       </section>
 
-      <!-- 05 MASTER KARYAWAN -->
       <section id="page-emp" class="hidden">
         <div class="page-head">
           <div><div class="page-kicker">05 — DATABASE SDM LENGKAP</div><div class="page-title">MASTER KARYAWAN</div></div>
@@ -484,7 +477,6 @@
         </div>
       </section>
 
-      <!-- 06 LOKASI 6 KOTA -->
       <section id="page-loc" class="hidden">
         <div class="page-head"><div><div class="page-kicker">06 — GEOFENCING</div><div class="page-title">LOKASI 6 KOTA</div></div></div>
         <div class="card">
@@ -502,7 +494,6 @@
         <div class="card"><div class="table-wrap"><table><thead><tr><th>Kode</th><th>Nama Lokasi</th><th>Kota</th><th>Koordinat</th><th>Radius</th></tr></thead><tbody id="loc-body"></tbody></table></div></div>
       </section>
 
-      <!-- 07 PENGATURAN WHITE-LABEL -->
       <section id="page-set" class="hidden">
         <div class="page-head"><div><div class="page-kicker">07 — WHITE-LABEL</div><div class="page-title">PENGATURAN</div></div></div>
         <div class="card" style="max-width:600px;">
@@ -512,8 +503,8 @@
             <div class="form-group"><label>Warna Aksen</label><input id="s-col" type="color" style="height:44px; padding:4px;" /></div>
             <div class="form-group"><label>Link Kurir Foto Google Drive</label><input id="s-drv" placeholder="https://script.google.com/macros/s/.../exec" /></div>
             <div class="form-group">
-              <label>Nomor WA Admin untuk Lapor Kendala (White-Label)</label>
-              <input id="s-wa" placeholder="Contoh: 6281234567890 (Kosongkan untuk sembunyikan tombol WA)" />
+              <label>Nomor WA Admin untuk Bantuan & Lapor Kendala (White-Label)</label>
+              <input id="s-wa" placeholder="Contoh: 6281234567890 (Kosongkan untuk sembunyikan link WA)" />
             </div>
             <button type="submit" class="btn-primary">Simpan Pengaturan</button>
           </form>
@@ -530,6 +521,7 @@
 
 <script>
   var empSession = null, currentGPS = null, lastGpsStatus = 'Mencari GPS', pendingType = null, pendingIsDL = false;
+  var publicAdminWa = '';
   var hrCache = { employees: [], locations: [], bpjs: [], attendance: [], requests: [], monthlyRaw: [], monthlySummary: [] };
 
   window.onload = function() {
@@ -538,8 +530,14 @@
     document.getElementById('filter-date').value = today;
     document.getElementById('filter-month').value = today.slice(0, 7);
     document.getElementById('req-tgl').value = today;
+    if (window.location.hash === '#admin') setLoginMode('hr');
     loadBranding();
     checkExistingSession();
+  };
+
+  window.onhashchange = function() {
+    if (window.location.hash === '#admin') setLoginMode('hr');
+    else setLoginMode('emp');
   };
 
   function getTodayWIB() { return new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10); }
@@ -547,12 +545,22 @@
   function openModal(html) { document.getElementById('modal-body').innerHTML = html; document.getElementById('modal-bg').classList.remove('hidden'); }
   function closeModal() { document.getElementById('modal-bg').classList.add('hidden'); }
 
+  function formatWaNumber(raw) {
+    var wa = String(raw || '').replace(/\D/g, '');
+    if (wa.indexOf('0') === 0) wa = '62' + wa.slice(1);
+    return wa;
+  }
+
   function applyBranding(b) {
     if (!b || !b.company_name) return;
     if (b.primary_color) document.documentElement.style.setProperty('--primary', b.primary_color);
-    document.title = b.company_name + ' — HRIS';
+    document.title = 'Presensi — ' + b.company_name;
     ['login-company','emp-company','hr-company','hr-mobile-title'].forEach(function(id){ document.getElementById(id).textContent = b.company_name; });
-    ['login-sub','hr-sub'].forEach(function(id){ document.getElementById(id).textContent = b.app_subtitle || 'Human Resource & Operations'; });
+    document.getElementById('hr-sub').textContent = b.app_subtitle || 'Human Resource & Operations';
+    if (b.admin_wa !== undefined) {
+      publicAdminWa = formatWaNumber(b.admin_wa);
+      document.getElementById('login-help-wa').classList.toggle('hidden', publicAdminWa.length < 9);
+    }
   }
 
   function loadBranding() {
@@ -562,17 +570,28 @@
   function checkExistingSession() {
     sb.auth.getSession().then(function(res) {
       if (res.data && res.data.session) { openHrDashboard(res.data.session.user.email); return; }
+      if (window.location.hash === '#admin') return;
       var saved = localStorage.getItem('hris_emp_cred');
       if (saved) { try { var c = JSON.parse(saved); callEmpLogin(c.nik, c.pin, true); } catch(e){} }
     });
   }
 
-  function switchLoginTab(tab) {
+  function setLoginMode(mode) {
+    var isHr = (mode === 'hr');
     document.getElementById('login-msg').classList.add('hidden');
-    document.getElementById('tab-emp').classList.toggle('active', tab === 'emp');
-    document.getElementById('tab-hr').classList.toggle('active', tab === 'hr');
-    document.getElementById('form-emp-login').classList.toggle('hidden', tab !== 'emp');
-    document.getElementById('form-hr-login').classList.toggle('hidden', tab !== 'hr');
+    document.getElementById('form-emp-login').classList.toggle('hidden', isHr);
+    document.getElementById('form-hr-login').classList.toggle('hidden', !isHr);
+    document.getElementById('link-to-hr').classList.toggle('hidden', isHr);
+    document.getElementById('link-to-emp').classList.toggle('hidden', !isHr);
+    document.getElementById('login-title').textContent = isHr ? 'Login Admin / HR' : 'Presensi Karyawan';
+    document.getElementById('login-sub').textContent = isHr ? 'Masuk untuk mengelola data operasional HRIS.' : 'Silakan masuk dengan NIK dan PIN Anda.';
+  }
+
+  function openLoginHelpWa(e) {
+    e.preventDefault();
+    if (!publicAdminWa) return;
+    var msg = 'Halo Admin, saya butuh bantuan untuk masuk ke aplikasi Presensi (lupa PIN / kendala login).';
+    window.open('https://wa.me/' + publicAdminWa + '?text=' + encodeURIComponent(msg), '_blank');
   }
 
   function showLoginErr(msg) { var el = document.getElementById('login-msg'); el.textContent = msg; el.classList.remove('hidden'); }
@@ -588,7 +607,7 @@
     var btn = document.getElementById('btn-emp-login');
     if (!silent) { btn.disabled = true; btn.textContent = 'Memeriksa...'; }
     sb.rpc('hris_emp_login', { p_nik: nik, p_pin: pin }).then(function(res) {
-      if (!silent) { btn.disabled = false; btn.textContent = 'MASUK PRESENSI'; }
+      if (!silent) { btn.disabled = false; btn.textContent = 'MASUK'; }
       var d = res.data;
       if (res.error || !d || !d.ok) {
         if (!silent) showLoginErr(d && d.message ? d.message : 'NIK atau PIN salah.');
@@ -602,9 +621,8 @@
       document.getElementById('emp-name').textContent = d.employee.nama_lengkap;
       document.getElementById('emp-loc-label').textContent = d.location ? ('Penempatan: ' + d.location.nama_lokasi + ' (' + d.location.kota + ')') : 'Penempatan: Belum diatur HR';
 
-      // Tampilkan tombol WA hanya jika admin_wa diisi di Pengaturan
-      var hasWa = d.settings && d.settings.admin_wa && d.settings.admin_wa.replace(/\D/g, '').length >= 9;
-      document.getElementById('btn-wa-admin').classList.toggle('hidden', !hasWa);
+      var wa = formatWaNumber(d.settings && d.settings.admin_wa);
+      document.getElementById('btn-wa-admin').classList.toggle('hidden', wa.length < 9);
 
       updateEmpButtons();
       renderEmpHistory(d.recent_attendance || []);
@@ -615,10 +633,8 @@
   }
 
   function openWaAdmin() {
-    var raw = (empSession && empSession.data && empSession.data.settings && empSession.data.settings.admin_wa) || '';
-    var wa = raw.replace(/\D/g, '');
+    var wa = formatWaNumber(empSession && empSession.data && empSession.data.settings && empSession.data.settings.admin_wa);
     if (!wa) return;
-    if (wa.indexOf('0') === 0) wa = '62' + wa.slice(1);
     var emp = empSession.data.employee || {};
     var loc = empSession.data.location ? (empSession.data.location.nama_lokasi + ' (' + empSession.data.location.kota + ')') : 'Belum diatur';
     var msg = 'Halo Admin, saya ' + (emp.nama_lengkap || '-') + ' (NIK: ' + (emp.nik_ktp || emp.nik_karyawan || '-') + ') di penempatan ' + loc + ' mengalami kendala presensi.\nStatus GPS: ' + lastGpsStatus + '.\nMohon bantuannya.';
@@ -684,8 +700,6 @@
 
     var noGps = !currentGPS;
     ['btn-masuk','btn-pulang','btn-dl-masuk','btn-dl-pulang'].forEach(function(id){ document.getElementById(id).disabled = noGps; });
-
-    // Ubah sub-teks tombol saat GPS mati/belum terbaca agar tidak dikira rusak
     document.getElementById('sub-masuk').textContent = noGps ? 'Aktifkan GPS di atas terlebih dahulu' : 'Tekan untuk foto selfie & mulai kerja';
     document.getElementById('sub-pulang').textContent = noGps ? 'Aktifkan GPS di atas terlebih dahulu' : 'Tekan untuk foto selfie & selesai kerja';
   }
@@ -958,7 +972,6 @@
     document.getElementById('loc-body').innerHTML = html || '<tr><td colspan="5">Belum ada lokasi.</td></tr>';
   }
 
-  // ===== PRESENSI HARIAN & REKAP BULANAN =====
   function loadAttendance() {
     var tgl = document.getElementById('filter-date').value || getTodayWIB();
     sb.from('hris_attendance').select('*, hris_employees(nik_karyawan, nama_lengkap, location_id, hris_locations(nama_lokasi))').eq('tanggal', tgl).order('created_at', { ascending: false }).then(function(res) {
@@ -1020,7 +1033,6 @@
     document.getElementById('recap-body').innerHTML = html || '<tr><td colspan="9">Tidak ada karyawan aktif di lokasi ini.</td></tr>';
   }
 
-  // ===== KARYAWAN & MODAL DETAIL =====
   function renderEmployees() {
     var q = (document.getElementById('search-emp').value || '').toLowerCase();
     var locId = document.getElementById('filter-emp-loc').value;
@@ -1115,7 +1127,6 @@
     if (ktp.length >= 6) document.getElementById('f-pin').value = ktp.slice(-6);
   }
 
-  // ===== KONTROL BPJS & MODAL =====
   function badgeStatus(st) {
     if (st === 'AKTIF' || st === 'HADIR' || st === 'DISETUJUI') return '<span class="badge b-green">' + st + '</span>';
     if (st === 'DINAS_LUAR') return '<span class="badge b-blue">DINAS LUAR</span>';
@@ -1194,7 +1205,6 @@
     });
   }
 
-  // ===== PENGAJUAN & IZIN =====
   function renderRequests() {
     var mode = document.getElementById('filter-req').value;
     var pendingCount = hrCache.requests.filter(function(x){ return x.status === 'PENDING'; }).length;
@@ -1223,7 +1233,6 @@
     });
   }
 
-  // ===== CRUD & IMPORT CSV =====
   function addLocation(e) {
     e.preventDefault();
     sb.from('hris_locations').insert([{ kode_lokasi: document.getElementById('l-kode').value.trim().toUpperCase(), nama_lokasi: document.getElementById('l-nama').value.trim(), kota: document.getElementById('l-kota').value.trim(), latitude: parseFloat(document.getElementById('l-lat').value), longitude: parseFloat(document.getElementById('l-lng').value), radius_meter: parseInt(document.getElementById('l-rad').value, 10) }]).then(function(r){ if(r.error) alert(r.error.message); else { e.target.reset(); loadHrData(); } });
@@ -1346,7 +1355,6 @@
     }).eq('id', 1).then(function(r){ if(r.error) alert(r.error.message); else { alert('Tersimpan!'); loadHrData(); } });
   }
 
-  // ===== EXPORT CSV =====
   function downloadCSV(name, rows) {
     var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c==null?'':c).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); a.download = name; a.click();
