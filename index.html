@@ -54,6 +54,14 @@
     .gps-box { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 16px; font-size: 15px; }
     .gps-ok { border-color: var(--green); background: #F0FDF4; color: #14532D; }
     .gps-err { border-color: var(--red); background: #FEF2F2; color: #991B1B; }
+    .btn-gps {
+      width: 100%; margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+      background: #FFFFFF; color: #111827; border: 2px solid #D1D5DB;
+      font-size: 14px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .gps-err .btn-gps { border-color: #FCA5A5; color: #991B1B; }
+    .gps-ok .btn-gps { border-color: #86EFAC; color: #166534; }
     .dl-box { background: #EFF6FF; border: 2px solid var(--blue); border-radius: 14px; padding: 16px; margin-bottom: 16px; color: #1E3A8A; }
     .panel-box { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
     .big-btn { width: 100%; padding: 22px 16px; border-radius: 16px; color: #FFF; font-size: 21px; font-weight: 900; display: block; text-align: center; margin-bottom: 14px; }
@@ -63,6 +71,16 @@
     .btn-dl { background: var(--blue); }
     .big-btn:disabled { background: #9CA3AF; cursor: not-allowed; }
     .menu-btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 800; margin-bottom: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); text-align: left; display: flex; justify-content: space-between; align-items: center; }
+    .btn-wa {
+      width: 100%; padding: 13px 14px; border-radius: 12px; margin-top: 4px;
+      background: #F0FDF4; color: #166534; border: 1.5px solid #86EFAC;
+      font-size: 14px; font-weight: 800; text-align: center;
+    }
+    .btn-danger-out {
+      width: 100%; padding: 11px; border-radius: 8px; margin-top: 14px;
+      background: #FEF2F2; color: #991B1B; border: 1px solid #FCA5A5;
+      font-size: 13px; font-weight: 700;
+    }
     .list-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
     .list-row:last-child { border-bottom: none; }
 
@@ -181,7 +199,7 @@
   <div id="gps-box" class="gps-box">
     <strong id="gps-title">Mencari Lokasi GPS...</strong>
     <div id="gps-desc" style="font-size:13px; margin-top:4px;">Pastikan Lokasi/GPS HP menyala.</div>
-    <button class="btn-outline" style="margin-top:10px; width:100%;" onclick="refreshGPS()">Perbarui Titik GPS</button>
+    <button class="btn-gps" onclick="refreshGPS()">↻ Perbarui Titik GPS</button>
   </div>
 
   <div id="emp-msg" class="alert hidden"></div>
@@ -191,11 +209,11 @@
   <div id="box-normal">
     <button id="btn-masuk" class="big-btn btn-masuk" onclick="startPresensi('MASUK', false)">
       PRESENSI MASUK
-      <small>Tekan untuk foto selfie & mulai kerja</small>
+      <small id="sub-masuk">Tekan untuk foto selfie & mulai kerja</small>
     </button>
     <button id="btn-pulang" class="big-btn btn-pulang hidden" onclick="startPresensi('KELUAR', false)">
       PRESENSI PULANG
-      <small>Tekan untuk foto selfie & selesai kerja</small>
+      <small id="sub-pulang">Tekan untuk foto selfie & selesai kerja</small>
     </button>
   </div>
 
@@ -250,9 +268,9 @@
     <div id="emp-req-list"></div>
   </div>
 
-  <!-- MENU LIPAT 3: GANTI PIN -->
+  <!-- MENU LIPAT 3: PENGATURAN AKUN, GANTI PIN & KELUAR (AMAN DARI KEPENCET) -->
   <button class="menu-btn" onclick="toggleBox('box-pin-form')">
-    <span>Ganti PIN Login</span><span>▾</span>
+    <span>Pengaturan Akun & Ganti PIN</span><span>▾</span>
   </button>
   <div id="box-pin-form" class="panel-box hidden">
     <form onsubmit="submitChangePin(event)">
@@ -261,9 +279,15 @@
       <div class="form-group"><label>Ulangi PIN Baru</label><input type="password" inputmode="numeric" id="pin-conf" maxlength="6" placeholder="Ketik ulang 6 angka baru" required /></div>
       <button type="submit" id="btn-pin-save" class="btn-primary">SIMPAN PIN BARU</button>
     </form>
+    <div style="border-top:1px solid var(--border); margin-top:16px; padding-top:4px;">
+      <button type="button" class="btn-danger-out" onclick="logoutEmp()">Keluar Akun (Ganti Pengguna)</button>
+    </div>
   </div>
 
-  <button class="btn-outline" style="width:100%; padding:12px; margin-top:6px;" onclick="logoutEmp()">Keluar Akun</button>
+  <!-- TOMBOL LAPOR KENDALA WA (OTOMATIS MUNCUL JIKA WA ADMIN DIISI DI PENGATURAN) -->
+  <button id="btn-wa-admin" class="btn-wa hidden" onclick="openWaAdmin()">
+    Lapor Kendala ke Admin (WhatsApp)
+  </button>
 </div>
 
 <!-- 3. DASHBOARD HR -->
@@ -329,7 +353,6 @@
           <button id="stab-bulanan" class="sub-tab" onclick="switchPresTab('bulanan')">Rekap Bulanan (Siap Gajian)</button>
         </div>
 
-        <!-- SUB 1: HARIAN -->
         <div id="pres-harian">
           <div class="card">
             <div class="toolbar" style="margin-bottom:14px;">
@@ -346,7 +369,6 @@
           </div>
         </div>
 
-        <!-- SUB 2: REKAP BULANAN -->
         <div id="pres-bulanan" class="hidden">
           <div class="card">
             <div class="toolbar" style="margin-bottom:14px;">
@@ -408,14 +430,13 @@
         </div>
       </section>
 
-      <!-- 05 MASTER KARYAWAN + BIODATA LENGKAP + IMPORT MASSAL -->
+      <!-- 05 MASTER KARYAWAN -->
       <section id="page-emp" class="hidden">
         <div class="page-head">
           <div><div class="page-kicker">05 — DATABASE SDM LENGKAP</div><div class="page-title">MASTER KARYAWAN</div></div>
           <button class="btn-outline" onclick="exportMasterEmpCSV()">⬇ Export Biodata Lengkap (CSV)</button>
         </div>
 
-        <!-- IMPORT MASSAL CSV -->
         <div class="card" style="border-left: 4px solid var(--primary);">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
             <div>
@@ -431,7 +452,6 @@
           <div id="import-status" style="font-size:13px; font-weight:700; margin-top:8px;"></div>
         </div>
 
-        <!-- TAMBAH SATUAN -->
         <div class="card">
           <div style="font-weight:800; margin-bottom:12px;">+ Tambah Karyawan Satuan</div>
           <form onsubmit="addEmployee(event)" class="grid-2">
@@ -450,7 +470,6 @@
           </form>
         </div>
 
-        <!-- DAFTAR KARYAWAN -->
         <div class="card">
           <div class="toolbar" style="margin-bottom:12px;">
             <input type="text" id="search-emp" placeholder="Cari nama, NIK, atau HP..." oninput="renderEmployees()" />
@@ -483,7 +502,7 @@
         <div class="card"><div class="table-wrap"><table><thead><tr><th>Kode</th><th>Nama Lokasi</th><th>Kota</th><th>Koordinat</th><th>Radius</th></tr></thead><tbody id="loc-body"></tbody></table></div></div>
       </section>
 
-      <!-- 07 PENGATURAN -->
+      <!-- 07 PENGATURAN WHITE-LABEL -->
       <section id="page-set" class="hidden">
         <div class="page-head"><div><div class="page-kicker">07 — WHITE-LABEL</div><div class="page-title">PENGATURAN</div></div></div>
         <div class="card" style="max-width:600px;">
@@ -492,6 +511,10 @@
             <div class="form-group"><label>Sub-Judul</label><input id="s-sub" required /></div>
             <div class="form-group"><label>Warna Aksen</label><input id="s-col" type="color" style="height:44px; padding:4px;" /></div>
             <div class="form-group"><label>Link Kurir Foto Google Drive</label><input id="s-drv" placeholder="https://script.google.com/macros/s/.../exec" /></div>
+            <div class="form-group">
+              <label>Nomor WA Admin untuk Lapor Kendala (White-Label)</label>
+              <input id="s-wa" placeholder="Contoh: 6281234567890 (Kosongkan untuk sembunyikan tombol WA)" />
+            </div>
             <button type="submit" class="btn-primary">Simpan Pengaturan</button>
           </form>
         </div>
@@ -500,13 +523,13 @@
   </div>
 </div>
 
-<!-- MODAL UNIVERSAL (DETAIL KARYAWAN & UPDATE BPJS) -->
+<!-- MODAL UNIVERSAL -->
 <div id="modal-bg" class="modal-bg hidden" onclick="if(event.target===this) closeModal()">
   <div class="modal-box" id="modal-body"></div>
 </div>
 
 <script>
-  var empSession = null, currentGPS = null, pendingType = null, pendingIsDL = false;
+  var empSession = null, currentGPS = null, lastGpsStatus = 'Mencari GPS', pendingType = null, pendingIsDL = false;
   var hrCache = { employees: [], locations: [], bpjs: [], attendance: [], requests: [], monthlyRaw: [], monthlySummary: [] };
 
   window.onload = function() {
@@ -578,12 +601,28 @@
       document.getElementById('view-emp').classList.remove('hidden');
       document.getElementById('emp-name').textContent = d.employee.nama_lengkap;
       document.getElementById('emp-loc-label').textContent = d.location ? ('Penempatan: ' + d.location.nama_lokasi + ' (' + d.location.kota + ')') : 'Penempatan: Belum diatur HR';
+
+      // Tampilkan tombol WA hanya jika admin_wa diisi di Pengaturan
+      var hasWa = d.settings && d.settings.admin_wa && d.settings.admin_wa.replace(/\D/g, '').length >= 9;
+      document.getElementById('btn-wa-admin').classList.toggle('hidden', !hasWa);
+
       updateEmpButtons();
       renderEmpHistory(d.recent_attendance || []);
       renderEmpReqHistory(d.recent_requests || []);
       startClock();
       refreshGPS();
     });
+  }
+
+  function openWaAdmin() {
+    var raw = (empSession && empSession.data && empSession.data.settings && empSession.data.settings.admin_wa) || '';
+    var wa = raw.replace(/\D/g, '');
+    if (!wa) return;
+    if (wa.indexOf('0') === 0) wa = '62' + wa.slice(1);
+    var emp = empSession.data.employee || {};
+    var loc = empSession.data.location ? (empSession.data.location.nama_lokasi + ' (' + empSession.data.location.kota + ')') : 'Belum diatur';
+    var msg = 'Halo Admin, saya ' + (emp.nama_lengkap || '-') + ' (NIK: ' + (emp.nik_ktp || emp.nik_karyawan || '-') + ') di penempatan ' + loc + ' mengalami kendala presensi.\nStatus GPS: ' + lastGpsStatus + '.\nMohon bantuannya.';
+    window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
   }
 
   function renderEmpHistory(list) {
@@ -645,6 +684,10 @@
 
     var noGps = !currentGPS;
     ['btn-masuk','btn-pulang','btn-dl-masuk','btn-dl-pulang'].forEach(function(id){ document.getElementById(id).disabled = noGps; });
+
+    // Ubah sub-teks tombol saat GPS mati/belum terbaca agar tidak dikira rusak
+    document.getElementById('sub-masuk').textContent = noGps ? 'Aktifkan GPS di atas terlebih dahulu' : 'Tekan untuk foto selfie & mulai kerja';
+    document.getElementById('sub-pulang').textContent = noGps ? 'Aktifkan GPS di atas terlebih dahulu' : 'Tekan untuk foto selfie & selesai kerja';
   }
 
   function onReqJenisChange() {
@@ -740,19 +783,29 @@
 
   function refreshGPS() {
     var box = document.getElementById('gps-box'), title = document.getElementById('gps-title'), desc = document.getElementById('gps-desc');
+    currentGPS = null;
+    lastGpsStatus = 'Sedang mencari GPS';
     box.className = 'gps-box'; title.textContent = 'Mencari titik GPS...'; desc.textContent = 'Mohon tunggu sebentar.';
-    if (!navigator.geolocation) { box.className = 'gps-box gps-err'; title.textContent = 'HP tidak mendukung GPS'; return; }
+    updateEmpButtons();
+
+    if (!navigator.geolocation) {
+      lastGpsStatus = 'Browser tidak mendukung GPS';
+      box.className = 'gps-box gps-err'; title.textContent = 'HP tidak mendukung GPS'; return;
+    }
     navigator.geolocation.getCurrentPosition(function(pos) {
       var loc = empSession.data.location;
       var jarak = loc ? calcDistance(pos.coords.latitude, pos.coords.longitude, loc.latitude, loc.longitude) : 0;
       var inRad = !loc || jarak <= loc.radius_meter;
       currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, jarak: jarak, inRadius: inRad };
+      lastGpsStatus = inRad ? ('Di dalam area (' + jarak + ' meter)') : ('Di luar area (' + jarak + ' meter)');
       box.className = 'gps-box ' + (inRad ? 'gps-ok' : 'gps-err');
       title.textContent = inRad ? 'Di Dalam Area Kantor (Siap Presensi)' : ('Di Luar Area Kantor (' + jarak + ' meter)');
       desc.textContent = loc ? (inRad ? ('Jarak: ' + jarak + ' m (batas ' + loc.radius_meter + ' m)') : 'Presensi normal ditolak. Gunakan MENU DINAS LUAR di bawah.') : 'GPS aktif.';
       updateEmpButtons();
     }, function() {
-      box.className = 'gps-box gps-err'; title.textContent = 'GPS Gagal Terbaca'; desc.textContent = 'Nyalakan GPS HP dan izinkan browser mengakses lokasi.';
+      lastGpsStatus = 'GPS gagal terbaca / belum diizinkan';
+      box.className = 'gps-box gps-err'; title.textContent = 'GPS Gagal Terbaca'; desc.textContent = 'Nyalakan GPS HP dan izinkan browser mengakses lokasi, lalu tekan tombol di bawah.';
+      updateEmpButtons();
     }, { enableHighAccuracy: true, timeout: 15000 });
   }
 
@@ -763,7 +816,7 @@
 
   function startPresensi(tipe, isDinasLuar) {
     document.getElementById('emp-msg').classList.add('hidden');
-    if (!currentGPS) { showEmpMsg('Tunggu GPS terbaca dulu.', false); return; }
+    if (!currentGPS) { showEmpMsg('Aktifkan GPS di atas terlebih dahulu.', false); return; }
     if (!isDinasLuar && !currentGPS.inRadius) { showEmpMsg('DITOLAK: Di luar lokasi. Wajib pakai DINAS LUAR.', false); updateEmpButtons(); return; }
     if (isDinasLuar && !document.getElementById('dl-ket').value.trim()) { showEmpMsg('Isi tujuan Dinas Luar dulu.', false); return; }
     pendingType = tipe; pendingIsDL = isDinasLuar;
@@ -825,7 +878,11 @@
     });
   }
 
-  function logoutEmp() { localStorage.removeItem('hris_emp_cred'); location.reload(); }
+  function logoutEmp() {
+    if (!confirm('Yakin keluar akun? Nanti Anda harus memasukkan NIK KTP & PIN lagi untuk masuk.')) return;
+    localStorage.removeItem('hris_emp_cred');
+    location.reload();
+  }
 
   // ===== HR DASHBOARD =====
   function handleHrLogin(e) {
@@ -878,6 +935,7 @@
         document.getElementById('s-sub').value = s.app_subtitle || '';
         document.getElementById('s-col').value = s.primary_color || '#EA580C';
         document.getElementById('s-drv').value = s.drive_webhook_url || '';
+        document.getElementById('s-wa').value = s.admin_wa || '';
       }
       hrCache.locations = r[1].data || []; hrCache.employees = r[2].data || [];
       hrCache.bpjs = r[3].data || []; hrCache.requests = r[4].data || [];
@@ -1283,7 +1341,8 @@
       company_name: document.getElementById('s-comp').value.trim(),
       app_subtitle: document.getElementById('s-sub').value.trim(),
       primary_color: document.getElementById('s-col').value,
-      drive_webhook_url: document.getElementById('s-drv').value.trim()
+      drive_webhook_url: document.getElementById('s-drv').value.trim(),
+      admin_wa: document.getElementById('s-wa').value.trim()
     }).eq('id', 1).then(function(r){ if(r.error) alert(r.error.message); else { alert('Tersimpan!'); loadHrData(); } });
   }
 
