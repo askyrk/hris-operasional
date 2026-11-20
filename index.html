@@ -1,1015 +1,664 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>HRIS & Operasional</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  :root {
-    --bg: #F6F6F4;
-    --surface: #FFFFFF;
-    --text: #141414;
-    --muted: #6B7280;
-    --border: #E5E7EB;
-    --accent: #EA580C;
-    --green: #16A34A;
-    --red: #DC2626;
-    --blue: #2563EB;
-  }
-  [data-theme="dark"] {
-    --bg: #0F1115;
-    --surface: #181B22;
-    --text: #F3F4F6;
-    --muted: #9CA3AF;
-    --border: #2B303B;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  body { background: var(--bg); color: var(--text); min-height: 100vh; }
-  .hidden { display: none !important; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>White-Label HRIS</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #EA580C; --bg: #F6F6F5; --card: #FFFFFF; --text: #111827;
+      --muted: #6B7280; --border: #E5E7EB; --sidebar: #FFFFFF;
+      --green: #16A34A; --red: #DC2626; --blue: #2563EB;
+    }
+    body.dark {
+      --bg: #0F1115; --card: #181B21; --text: #F3F4F6;
+      --muted: #9CA3AF; --border: #2A2F3A; --sidebar: #14171C;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; }
+    .hidden { display: none !important; }
+    button { cursor: pointer; font-family: inherit; border: none; }
+    input, select { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); font-size: 15px; }
+    label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 
-  /* BUTTONS & INPUTS */
-  .btn { cursor: pointer; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 14px; transition: opacity .15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-  .btn:hover { opacity: .9; }
-  .btn:disabled { opacity: .5; cursor: not-allowed; }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-dark { background: var(--text); color: var(--surface); }
-  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-  .btn-green { background: var(--green); color: #fff; }
-  .btn-red { background: var(--red); color: #fff; }
-  .btn-sm { padding: 6px 10px; font-size: 12px; }
-  input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 14px; }
-  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .4px; }
-  .form-group { margin-bottom: 14px; }
+    /* LOGIN */
+    .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .login-card { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+    .brand-tag { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+    .brand-dot { width: 10px; height: 10px; background: var(--primary); border-radius: 2px; display: inline-block; }
+    .login-title { font-size: 22px; font-weight: 800; margin-top: 6px; }
+    .login-sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+    .tab-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--bg); padding: 4px; border-radius: 10px; margin-bottom: 18px; }
+    .tab-btn { padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; background: transparent; color: var(--muted); }
+    .tab-btn.active { background: var(--text); color: var(--card); }
+    .form-group { margin-bottom: 14px; }
+    .btn-primary { width: 100%; padding: 14px; border-radius: 10px; background: var(--primary); color: #FFF; font-size: 16px; font-weight: 700; }
+    .btn-dark { padding: 10px 16px; border-radius: 8px; background: var(--text); color: var(--card); font-size: 13px; font-weight: 700; }
+    .btn-outline { padding: 9px 14px; border-radius: 8px; background: transparent; border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 600; }
+    .alert { padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; font-weight: 600; }
+    .alert-err { background: #FEE2E2; color: #991B1B; }
+    .alert-ok { background: #DCFCE7; color: #166534; }
 
-  /* LOGIN PAGE */
-  #loginView { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .login-card { width: 100%; max-width: 400px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,.04); }
-  .brand-tag { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
-  .brand-dot { width: 10px; height: 10px; background: var(--accent); border-radius: 2px; }
-  .login-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--bg); padding: 4px; border-radius: 10px; margin: 20px 0; }
-  .tab-btn { padding: 10px; border: none; border-radius: 8px; background: transparent; color: var(--muted); font-weight: 700; cursor: pointer; font-size: 13px; }
-  .tab-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    /* HP KARYAWAN */
+    .emp-wrap { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
+    .emp-header { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .emp-clock { font-size: 38px; font-weight: 900; margin: 6px 0 2px; }
+    .emp-date { font-size: 15px; color: var(--muted); font-weight: 600; }
+    .emp-info { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .emp-name { font-size: 19px; font-weight: 800; }
+    .gps-box { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 16px; font-size: 15px; }
+    .gps-ok { border-color: var(--green); background: #F0FDF4; color: #14532D; }
+    .gps-warn { border-color: #D97706; background: #FFFBEB; color: #78350F; }
+    .big-btn { width: 100%; padding: 22px 16px; border-radius: 16px; color: #FFF; font-size: 21px; font-weight: 900; display: block; text-align: center; margin-bottom: 14px; }
+    .big-btn small { display: block; font-size: 14px; font-weight: 500; opacity: 0.92; margin-top: 4px; }
+    .btn-masuk { background: var(--green); }
+    .btn-pulang { background: var(--primary); }
+    .big-btn:disabled { background: #9CA3AF; cursor: not-allowed; }
+    .status-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .status-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
+    .status-box span { display: block; font-size: 12px; font-weight: 700; color: var(--muted); }
+    .status-box strong { display: block; font-size: 20px; margin-top: 4px; }
 
-  /* MOBILE EMPLOYEE UI (RAMAH ORANG TUA & HP JADUL) */
-  #empView { max-width: 480px; margin: 0 auto; padding: 16px; }
-  .emp-header { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-  .clock-card { background: var(--text); color: var(--surface); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 14px; }
-  .clock-time { font-size: 40px; font-weight: 800; letter-spacing: 1px; }
-  .clock-date { font-size: 14px; opacity: .8; margin-top: 4px; }
-  .gps-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 16px; font-size: 14px; }
-  .big-action-btn { width: 100%; padding: 24px 16px; font-size: 20px; font-weight: 800; border-radius: 14px; border: none; color: #fff; cursor: pointer; margin-bottom: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
-  .big-action-btn small { font-size: 13px; font-weight: 500; opacity: .9; }
-  .big-in { background: var(--green); }
-  .big-out { background: var(--accent); }
-  .big-done { background: #6B7280 !important; cursor: default; }
-
-  /* HR DESKTOP LAYOUT (SWISS-STYLE) */
-  #hrView { display: flex; min-height: 100vh; }
-  .sidebar { width: 250px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 14px; position: sticky; top: 0; height: 100vh; flex-shrink: 0; }
-  .nav-section { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1px; margin: 18px 8px 6px; }
-  .nav-item { width: 100%; text-align: left; background: transparent; border: none; color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 2px; }
-  .nav-item:hover { background: var(--bg); }
-  .nav-item.active { background: var(--text); color: var(--surface); }
-  .sidebar-footer { margin-top: auto; border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-  .main-content { flex: 1; padding: 24px 28px; overflow-x: hidden; }
-  .page-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-  .page-eyebrow { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px; }
-  .page-title { font-size: 24px; font-weight: 800; letter-spacing: -.3px; }
-  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
-  .kpi-val { font-size: 28px; font-weight: 800; margin-top: 6px; }
-  .table-wrap { overflow-x: auto; margin-top: 12px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  th { font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-  .b-green { background: #DCFCE7; color: #166534; }
-  .b-orange { background: #FFEDD5; color: #9A3412; }
-  .b-red { background: #FEE2E2; color: #991B1B; }
-  .b-gray { background: #F3F4F6; color: #374151; }
-  .b-blue { background: #DBEAFE; color: #1E40AF; }
-
-  /* MODAL */
-  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 99; }
-  .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; padding: 22px; }
-  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-  /* RESPONSIVE MOBILE FOR HR */
-  .mobile-bar { display: none; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); justify-content: space-between; align-items: center; }
-  @media (max-width: 820px) {
-    #hrView { flex-direction: column; }
-    .mobile-bar { display: flex; }
-    .sidebar { display: none; width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
-    .sidebar.open { display: flex; }
-    .main-content { padding: 16px; }
-  }
-</style>
+    /* DASHBOARD HR */
+    .hr-layout { display: flex; min-height: 100vh; }
+    .sidebar { width: 250px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 20px 16px; display: flex; flex-direction: column; justify-content: space-between; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+    .nav-section { font-size: 11px; font-weight: 700; color: var(--muted); margin: 18px 8px 8px; text-transform: uppercase; }
+    .nav-item { width: 100%; text-align: left; padding: 11px 12px; border-radius: 8px; background: transparent; color: var(--text); font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .nav-item:hover { background: var(--bg); }
+    .nav-item.active { background: #111827; color: #FFFFFF; }
+    body.dark .nav-item.active { background: var(--primary); color: #FFFFFF; }
+    .main { flex: 1; padding: 24px 28px; overflow-x: auto; }
+    .page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+    .page-kicker { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    .page-title { font-size: 26px; font-weight: 900; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 18px; }
+    .kpi-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    .kpi-val { font-size: 30px; font-weight: 900; margin-top: 8px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--border); }
+    th { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--muted); }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+    .b-green { background: #DCFCE7; color: #166534; }
+    .b-orange { background: #FFEDD5; color: #9A3412; }
+    .b-red { background: #FEE2E2; color: #991B1B; }
+    .b-gray { background: #E5E7EB; color: #374151; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .mobile-bar { display: none; background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 16px; justify-content: space-between; align-items: center; }
+    @media (max-width: 820px) {
+      .hr-layout { flex-direction: column; }
+      .sidebar { display: none; width: 100%; height: auto; position: static; }
+      .sidebar.open { display: flex; }
+      .mobile-bar { display: flex; }
+      .main { padding: 16px; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- ==================== 1. HALAMAN LOGIN ==================== -->
-<div id="loginView">
+<script>
+  // ===== GANTI 2 BARIS DI BAWAH INI DENGAN KUNCI SUPABASE KAMU =====
+  var SUPABASE_URL = 'TEMPEL_SUPABASE_URL_KAMU';
+  var SUPABASE_ANON_KEY = 'TEMPEL_SUPABASE_ANON_KEY_KAMU';
+  var DRIVE_SECRET = 'HRIS-PAMUJA-2026';
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<!-- 1. LOGIN -->
+<div id="view-login" class="login-wrap">
   <div class="login-card">
     <div class="brand-tag"><span class="brand-dot"></span> WHITE-LABEL HRIS</div>
-    <h2 id="loginCompanyName" style="font-size:20px;font-weight:800;">MEMUAT...</h2>
-    <p id="loginSubtitle" style="font-size:13px;color:var(--muted);margin-top:2px;">Human Resource & Operations</p>
+    <div id="login-company" class="login-title">HRIS Operasional</div>
+    <div id="login-sub" class="login-sub">Human Resource & Operations</div>
 
-    <div class="login-tabs">
-      <button class="tab-btn active" id="tabEmp" onclick="switchLoginTab('emp')">Absen Karyawan</button>
-      <button class="tab-btn" id="tabHr" onclick="switchLoginTab('hr')">Admin / HR</button>
+    <div class="tab-row">
+      <button id="tab-emp" class="tab-btn active" onclick="switchLoginTab('emp')">Absensi Karyawan</button>
+      <button id="tab-hr" class="tab-btn" onclick="switchLoginTab('hr')">Admin / HR</button>
     </div>
 
-    <!-- Form Karyawan -->
-    <form id="formEmpLogin" onsubmit="handleEmpLogin(event)">
+    <div id="login-msg" class="alert alert-err hidden"></div>
+
+    <form id="form-emp-login" onsubmit="handleEmpLogin(event)">
       <div class="form-group">
         <label>ID Karyawan (Contoh: OS-001)</label>
-        <input type="text" id="empNik" placeholder="Masukkan ID Karyawan" required style="font-size:16px;padding:12px;">
+        <input type="text" id="emp-nik" placeholder="Masukkan ID Karyawan" required />
       </div>
       <div class="form-group">
-        <label>PIN (6 Angka)</label>
-        <input type="password" inputmode="numeric" id="empPin" placeholder="Masukkan PIN" required style="font-size:16px;padding:12px;">
+        <label>PIN 6 Angka (Standar: 123456)</label>
+        <input type="password" id="emp-pin" inputmode="numeric" placeholder="Masukkan PIN" required />
       </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;" id="btnEmpLogin">MASUK ABSENSI</button>
+      <button type="submit" id="btn-emp-login" class="btn-primary">MASUK ABSENSI</button>
     </form>
 
-    <!-- Form HR -->
-    <form id="formHrLogin" class="hidden" onsubmit="handleHrLogin(event)">
+    <form id="form-hr-login" class="hidden" onsubmit="handleHrLogin(event)">
       <div class="form-group">
-        <label>Email HR / Admin</label>
-        <input type="email" id="hrEmail" placeholder="email@domain.com" required>
+        <label>Email HR</label>
+        <input type="email" id="hr-email" placeholder="nama@email.com" required />
       </div>
       <div class="form-group">
         <label>Password</label>
-        <input type="password" id="hrPass" placeholder="••••••••" required>
+        <input type="password" id="hr-pass" placeholder="Password akun HR" required />
       </div>
-      <button type="submit" class="btn btn-dark" style="width:100%;padding:12px;" id="btnHrLogin">MASUK DASHBOARD HR</button>
+      <button type="submit" id="btn-hr-login" class="btn-primary">MASUK DASHBOARD HR</button>
     </form>
-    <p id="loginMsg" style="color:var(--red);font-size:13px;margin-top:12px;text-align:center;"></p>
   </div>
 </div>
 
-<!-- ==================== 2. TAMPILAN KARYAWAN (HP) ==================== -->
-<div id="empView" class="hidden">
+<!-- 2. ABSENSI KARYAWAN (HP) -->
+<div id="view-emp" class="emp-wrap hidden">
   <div class="emp-header">
-    <div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);" id="empCompName">PERUSAHAAN</div>
-      <div style="font-size:18px;font-weight:800;" id="empName">Nama Karyawan</div>
-      <div style="font-size:13px;color:var(--muted);" id="empLocInfo">Penempatan: -</div>
-    </div>
-    <button class="btn btn-outline btn-sm" onclick="empLogout()">Keluar</button>
-  </div>
-
-  <div class="clock-card">
-    <div class="clock-time" id="liveClock">00:00:00</div>
-    <div class="clock-date" id="liveDate">Memuat tanggal...</div>
-  </div>
-
-  <div class="gps-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <strong>Status Lokasi (GPS)</strong>
-      <button class="btn btn-outline btn-sm" onclick="refreshGPS()">Cek Ulang GPS</button>
-    </div>
-    <p id="gpsStatusText" style="margin-top:8px;color:var(--muted);">Sedang mencari titik lokasi HP Anda...</p>
-    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
-      <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:14px;color:var(--text);cursor:pointer;">
-        <input type="checkbox" id="chkDinasLuar" style="width:20px;height:20px;" onchange="toggleDinasLuar()">
-        Sedang Dinas Luar (Di luar lokasi)
-      </label>
-      <input type="text" id="ketDinasLuar" class="hidden" placeholder="Tulis keterangan dinas luar..." style="margin-top:8px;">
+    <div class="brand-tag"><span class="brand-dot"></span> <span id="emp-company">HRIS</span></div>
+    <div id="emp-clock" class="emp-clock">00:00:00</div>
+    <div id="emp-date" class="emp-date">-</div>
+    <div class="emp-info">
+      <div id="emp-name" class="emp-name">-</div>
+      <div id="emp-loc-label" style="color:var(--muted); margin-top:2px;">Lokasi: -</div>
     </div>
   </div>
 
-  <!-- Input Kamera Bawaan HP (Ringan & Anti-Crash HP Jadul) -->
-  <input type="file" id="cameraInput" accept="image/*" capture="user" class="hidden" onchange="onPhotoCaptured(event)">
+  <div class="status-strip">
+    <div class="status-box"><span>ABSEN MASUK</span><strong id="st-masuk" style="color:var(--green)">--:--</strong></div>
+    <div class="status-box"><span>ABSEN PULANG</span><strong id="st-pulang" style="color:var(--primary)">--:--</strong></div>
+  </div>
 
-  <button id="btnAbsenMasuk" class="big-action-btn big-in" onclick="triggerAbsen('MASUK')">
-    <span>ABSEN MASUK</span>
-    <small id="subInText">Klik untuk foto selfie & catat jam masuk</small>
+  <div id="gps-box" class="gps-box">
+    <strong id="gps-title">Mencari Lokasi GPS...</strong>
+    <div id="gps-desc" style="font-size:13px; margin-top:4px;">Pastikan Lokasi/GPS HP menyala.</div>
+    <button class="btn-outline" style="margin-top:10px; width:100%;" onclick="refreshGPS()">Perbarui Titik GPS</button>
+  </div>
+
+  <div id="emp-msg" class="alert hidden"></div>
+  <input type="file" id="camera-input" accept="image/*" capture="user" class="hidden" onchange="onPhotoCaptured(event)" />
+
+  <button id="btn-masuk" class="big-btn btn-masuk" onclick="startAbsen('MASUK')">
+    ABSEN MASUK
+    <small>Tekan untuk foto selfie & catat masuk</small>
   </button>
 
-  <button id="btnAbsenPulang" class="big-action-btn big-out" onclick="triggerAbsen('KELUAR')">
-    <span>ABSEN PULANG</span>
-    <small id="subOutText">Klik untuk foto selfie & catat jam pulang</small>
+  <button id="btn-pulang" class="big-btn btn-pulang" onclick="startAbsen('KELUAR')">
+    ABSEN PULANG
+    <small>Tekan saat selesai jam kerja</small>
   </button>
 
-  <p id="empStatusMsg" style="text-align:center;font-size:14px;font-weight:600;margin-top:10px;min-height:22px;"></p>
+  <button class="btn-outline" style="width:100%; padding:12px;" onclick="logoutEmp()">Keluar Akun</button>
 </div>
 
-<!-- ==================== 3. DASHBOARD HR (DESKTOP) ==================== -->
-<div id="hrView" class="hidden">
+<!-- 3. DASHBOARD HR -->
+<div id="view-hr" class="hidden">
   <div class="mobile-bar">
-    <strong id="mobBrand">HRIS</strong>
-    <button class="btn btn-outline btn-sm" onclick="document.getElementById('hrSidebar').classList.toggle('open')">Menu ☰</button>
+    <strong id="hr-mobile-title">HRIS</strong>
+    <button class="btn-outline" onclick="document.getElementById('hr-sidebar').classList.toggle('open')">Menu</button>
   </div>
 
-  <aside class="sidebar" id="hrSidebar">
-    <div style="padding:0 8px 14px;border-bottom:1px solid var(--border);">
-      <div class="brand-tag"><span class="brand-dot"></span> WHITE-LABEL ERP</div>
-      <div id="sideCompany" style="font-weight:800;font-size:15px;line-height:1.2;">PERUSAHAAN</div>
-      <div id="sideSubtitle" style="font-size:11px;color:var(--muted);margin-top:2px;">HR & Operations</div>
-    </div>
+  <div class="hr-layout">
+    <aside id="hr-sidebar" class="sidebar">
+      <div>
+        <div class="brand-tag"><span class="brand-dot"></span> WHITE-LABEL ERP</div>
+        <div id="hr-company" style="font-size:17px; font-weight:900; margin-top:6px;">-</div>
+        <div id="hr-sub" style="font-size:12px; color:var(--muted); margin-bottom:14px;">-</div>
 
-    <div class="nav-section">OPERASIONAL</div>
-    <button class="nav-item active" onclick="showHrPage('dash', this)">01 / DASHBOARD</button>
-    <button class="nav-item" onclick="showHrPage('att', this)">02 / ABSENSI HARIAN</button>
-    <button class="nav-item" onclick="showHrPage('bpjs', this)">03 / KONTROL BPJS</button>
+        <div class="nav-section">Operasional</div>
+        <button class="nav-item active" onclick="showHrPage('dash', this)">01 / DASHBOARD</button>
+        <button class="nav-item" onclick="showHrPage('absen', this)">02 / ABSENSI HARIAN</button>
+        <button class="nav-item" onclick="showHrPage('bpjs', this)">03 / KONTROL BPJS</button>
 
-    <div class="nav-section">MASTER & SISTEM</div>
-    <button class="nav-item" onclick="showHrPage('emp', this)">04 / MASTER KARYAWAN</button>
-    <button class="nav-item" onclick="showHrPage('loc', this)">05 / LOKASI 6 KOTA</button>
-    <button class="nav-item" onclick="showHrPage('set', this)">06 / PENGATURAN</button>
+        <div class="nav-section">Master & Sistem</div>
+        <button class="nav-item" onclick="showHrPage('emp', this)">04 / MASTER KARYAWAN</button>
+        <button class="nav-item" onclick="showHrPage('loc', this)">05 / LOKASI 6 KOTA</button>
+        <button class="nav-item" onclick="showHrPage('set', this)">06 / PENGATURAN</button>
+      </div>
 
-    <div class="sidebar-footer">
-      <div style="font-size:11px;color:var(--green);font-weight:600;">● Supabase Live</div>
-      <button class="btn btn-outline btn-sm" onclick="toggleTheme()" id="btnTheme">☾ Dark Mode</button>
-      <div id="hrUserEmail" style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;"></div>
-      <button class="btn btn-outline btn-sm" onclick="hrLogout()">KELUAR</button>
-    </div>
-  </aside>
+      <div style="border-top:1px solid var(--border); padding-top:12px;">
+        <button class="btn-outline" style="width:100%; margin-bottom:8px;" onclick="toggleDark()">Mode Gelap / Terang</button>
+        <div id="hr-user-email" style="font-size:12px; color:var(--muted); margin-bottom:8px; word-break:break-all;">-</div>
+        <button class="btn-outline" style="width:100%;" onclick="logoutHr()">KELUAR</button>
+      </div>
+    </aside>
 
-  <main class="main-content">
-    <!-- 01 DASHBOARD -->
-    <section id="page-dash">
-      <div class="page-head">
-        <div>
-          <div class="page-eyebrow">01 — RINGKASAN OPERASIONAL</div>
-          <h1 class="page-title">DASHBOARD HRIS</h1>
+    <main class="main">
+      <section id="page-dash">
+        <div class="page-head">
+          <div><div class="page-kicker">01 — RINGKASAN</div><div class="page-title">DASHBOARD HRIS</div></div>
+          <button class="btn-dark" onclick="loadHrData()">Muat Ulang</button>
         </div>
-        <button class="btn btn-primary" onclick="loadAllHrData()">↻ Refresh Data</button>
-      </div>
-      <div class="kpi-grid">
-        <div class="card"><div class="page-eyebrow">KARYAWAN AKTIF</div><div class="kpi-val" id="kpiTotalEmp">0</div></div>
-        <div class="card"><div class="page-eyebrow">HADIR HARI INI</div><div class="kpi-val" style="color:var(--green);" id="kpiHadir">0</div></div>
-        <div class="card"><div class="page-eyebrow">BELUM ABSEN</div><div class="kpi-val" style="color:var(--accent);" id="kpiBelum">0</div></div>
-        <div class="card"><div class="page-eyebrow">ALERT BPJS</div><div class="kpi-val" style="color:var(--red);" id="kpiBpjsAlert">0</div></div>
-      </div>
-      <div class="card">
-        <strong>Absensi Masuk Terbaru Hari Ini</strong>
-        <div class="table-wrap">
-          <table><thead><tr><th>Nama</th><th>Lokasi</th><th>Jam Masuk</th><th>Status</th><th>Foto</th></tr></thead>
-          <tbody id="dashRecentBody"></tbody></table>
+        <div class="kpi-grid">
+          <div class="card"><div class="kpi-label">Karyawan Aktif</div><div id="k-emp" class="kpi-val">0</div></div>
+          <div class="card"><div class="kpi-label">Hadir Hari Ini</div><div id="k-hadir" class="kpi-val" style="color:var(--green)">0</div></div>
+          <div class="card"><div class="kpi-label">BPJS Perlu Tindakan</div><div id="k-bpjs" class="kpi-val" style="color:var(--primary)">0</div></div>
+          <div class="card"><div class="kpi-label">Titik Penempatan</div><div id="k-loc" class="kpi-val">0</div></div>
         </div>
-      </div>
-    </section>
+        <div class="card">
+          <div style="font-weight:800; margin-bottom:12px;">Peringatan Kontrol BPJS</div>
+          <div class="table-wrap"><table><thead><tr><th>ID</th><th>Nama</th><th>Status Kerja</th><th>BPJS Kesehatan</th><th>BPJS Ketenagakerjaan</th></tr></thead><tbody id="dash-bpjs-body"><tr><td colspan="5">Memuat...</td></tr></tbody></table></div>
+        </div>
+      </section>
 
-    <!-- 02 ABSENSI HARIAN -->
-    <section id="page-att" class="hidden">
-      <div class="page-head">
-        <div>
-          <div class="page-eyebrow">02 — MONITORING KEHADIRAN</div>
-          <h1 class="page-title">ABSENSI HARIAN</h1>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <input type="date" id="filterAttDate" style="width:auto;" onchange="loadAttendanceTable()">
-          <select id="filterAttLoc" style="width:auto;" onchange="loadAttendanceTable()"><option value="">Semua Lokasi</option></select>
-          <button class="btn btn-dark" onclick="exportAttCSV()">⬇ Export CSV</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>Nama Karyawan</th><th>Lokasi</th><th>Masuk</th><th>Pulang</th><th>Jarak</th><th>Status</th><th>Foto</th></tr></thead>
-            <tbody id="attTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- 03 KONTROL BPJS -->
-    <section id="page-bpjs" class="hidden">
-      <div class="page-head">
-        <div>
-          <div class="page-eyebrow">03 — KESEHATAN (e-DABU) & KETENAGAKERJAAN (SIPP)</div>
-          <h1 class="page-title">KONTROL BPJS</h1>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <select id="filterBpjsStatus" style="width:auto;" onchange="renderBpjsTable()">
-            <option value="">Semua Status</option>
-            <option value="ALERT">Perlu Tindakan (Belum Daftar / Perlu Nonaktif)</option>
-            <option value="AKTIF">Aktif Semua</option>
-          </select>
-          <button class="btn btn-dark" onclick="exportBpjsCSV()">⬇ Export CSV BPJS</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Nama</th><th>Status Kerja</th><th>NIK KTP</th><th>Status JKN</th><th>No. JKN</th><th>Status KPJ</th><th>No. KPJ</th><th>Aksi</th></tr></thead>
-            <tbody id="bpjsTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- 04 MASTER KARYAWAN -->
-    <section id="page-emp" class="hidden">
-      <div class="page-head">
-        <div>
-          <div class="page-eyebrow">04 — DATABASE INTERNAL & OUTSOURCING</div>
-          <h1 class="page-title">MASTER KARYAWAN</h1>
-        </div>
-        <button class="btn btn-primary" onclick="openEmpModal()">+ Tambah Karyawan</button>
-      </div>
-      <div class="card">
-        <input type="text" id="searchEmp" placeholder="Cari nama atau ID karyawan..." oninput="renderEmpTable()" style="max-width:320px;margin-bottom:10px;">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>Nama</th><th>Kategori</th><th>Lokasi</th><th>PIN</th><th>Status</th><th>Aksi</th></tr></thead>
-            <tbody id="empTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- 05 LOKASI 6 KOTA -->
-    <section id="page-loc" class="hidden">
-      <div class="page-head">
-        <div>
-          <div class="page-eyebrow">05 — GEOFENCING PENEMPATAN</div>
-          <h1 class="page-title">LOKASI 6 KOTA</h1>
-        </div>
-        <button class="btn btn-primary" onclick="openLocModal()">+ Tambah Lokasi</button>
-      </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Kode</th><th>Nama Lokasi</th><th>Kota</th><th>Koordinat (Lat, Lng)</th><th>Radius</th><th>Aksi</th></tr></thead>
-            <tbody id="locTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- 06 PENGATURAN WHITE-LABEL -->
-    <section id="page-set" class="hidden">
-      <div class="page-head">
-        <div>
-          <div class="page-eyebrow">06 — KONFIGURASI WHITE-LABEL</div>
-          <h1 class="page-title">PENGATURAN SISTEM</h1>
-        </div>
-      </div>
-      <div class="card" style="max-width:560px;">
-        <form onsubmit="saveSettings(event)">
-          <div class="form-group"><label>Nama Perusahaan</label><input type="text" id="setCompName" required></div>
-          <div class="form-group"><label>Sub-Judul Aplikasi</label><input type="text" id="setSubtitle" required></div>
-          <div class="row-2">
-            <div class="form-group"><label>Warna Aksen Utama</label><input type="color" id="setColor" style="height:42px;padding:4px;"></div>
-            <div class="form-group"><label>Jam Masuk Standar</label><input type="time" id="setCheckIn" required></div>
+      <section id="page-absen" class="hidden">
+        <div class="page-head">
+          <div><div class="page-kicker">02 — KEHADIRAN</div><div class="page-title">ABSENSI HARIAN</div></div>
+          <div style="display:flex; gap:8px;">
+            <input type="date" id="filter-date" onchange="loadAttendance()" style="width:auto;" />
+            <button class="btn-outline" onclick="exportAttendanceCSV()">Export CSV</button>
           </div>
-          <div class="form-group"><label>URL Kurir Foto Google Drive (Apps Script)</label><input type="url" id="setWebhook" placeholder="https://script.google.com/macros/s/.../exec"></div>
-          <button type="submit" class="btn btn-primary">Simpan Pengaturan</button>
-        </form>
-      </div>
-    </section>
-  </main>
-</div>
+        </div>
+        <div class="card"><div class="table-wrap"><table><thead><tr><th>Karyawan</th><th>Lokasi</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Foto</th></tr></thead><tbody id="absen-body"></tbody></table></div></div>
+      </section>
 
-<!-- MODAL UNIVERSAL -->
-<div id="modalBg" class="modal-bg hidden" onclick="if(event.target===this) closeModal()">
-  <div class="modal-box" id="modalContent"></div>
+      <section id="page-bpjs" class="hidden">
+        <div class="page-head">
+          <div><div class="page-kicker">03 — KEPESERTAAN</div><div class="page-title">KONTROL BPJS</div></div>
+          <button class="btn-dark" onclick="exportBpjsCSV()">Export CSV BPJS</button>
+        </div>
+        <div class="card"><div class="table-wrap"><table><thead><tr><th>Karyawan</th><th>NIK KTP</th><th>No. JKN</th><th>Status JKN</th><th>No. KPJ</th><th>Status KPJ</th><th>Aksi</th></tr></thead><tbody id="bpjs-body"></tbody></table></div></div>
+      </section>
+
+      <section id="page-emp" class="hidden">
+        <div class="page-head"><div><div class="page-kicker">04 — DATABASE SDM</div><div class="page-title">MASTER KARYAWAN</div></div></div>
+        <div class="card">
+          <div style="font-weight:800; margin-bottom:12px;">+ Tambah Karyawan</div>
+          <form onsubmit="addEmployee(event)" class="grid-2">
+            <div><label>ID Karyawan</label><input id="f-nik" placeholder="OS-001" required /></div>
+            <div><label>Nama Lengkap</label><input id="f-nama" placeholder="Nama KTP" required /></div>
+            <div><label>NIK KTP</label><input id="f-ktp" placeholder="16 digit" /></div>
+            <div><label>Kategori</label><select id="f-kat"><option value="OS">OS</option><option value="INTERNAL">INTERNAL</option></select></div>
+            <div><label>Jabatan</label><input id="f-jab" placeholder="Security / Admin" /></div>
+            <div><label>Penempatan</label><select id="f-loc"></select></div>
+            <div><label>PIN Absensi</label><input id="f-pin" value="123456" required /></div>
+            <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn-primary" style="padding:11px;">Simpan</button></div>
+          </form>
+        </div>
+        <div class="card"><div class="table-wrap"><table><thead><tr><th>ID</th><th>Nama</th><th>Kategori</th><th>Penempatan</th><th>PIN</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="emp-body"></tbody></table></div></div>
+      </section>
+
+      <section id="page-loc" class="hidden">
+        <div class="page-head"><div><div class="page-kicker">05 — GEOFENCING</div><div class="page-title">LOKASI 6 KOTA</div></div></div>
+        <div class="card">
+          <div style="font-weight:800; margin-bottom:12px;">+ Tambah Lokasi</div>
+          <form onsubmit="addLocation(event)" class="grid-2">
+            <div><label>Kode</label><input id="l-kode" placeholder="MJK-01" required /></div>
+            <div><label>Nama Lokasi</label><input id="l-nama" placeholder="Kejari Mojokerto" required /></div>
+            <div><label>Kota</label><input id="l-kota" placeholder="Mojokerto" required /></div>
+            <div><label>Latitude</label><input id="l-lat" type="number" step="any" placeholder="-7.4726" required /></div>
+            <div><label>Longitude</label><input id="l-lng" type="number" step="any" placeholder="112.4341" required /></div>
+            <div><label>Radius (Meter)</label><input id="l-rad" type="number" value="100" required /></div>
+            <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn-primary" style="padding:11px;">Simpan</button></div>
+          </form>
+        </div>
+        <div class="card"><div class="table-wrap"><table><thead><tr><th>Kode</th><th>Nama Lokasi</th><th>Kota</th><th>Koordinat</th><th>Radius</th></tr></thead><tbody id="loc-body"></tbody></table></div></div>
+      </section>
+
+      <section id="page-set" class="hidden">
+        <div class="page-head"><div><div class="page-kicker">06 — WHITE-LABEL</div><div class="page-title">PENGATURAN</div></div></div>
+        <div class="card" style="max-width:600px;">
+          <form onsubmit="saveSettings(event)">
+            <div class="form-group"><label>Nama Perusahaan</label><input id="s-comp" required /></div>
+            <div class="form-group"><label>Sub-Judul</label><input id="s-sub" required /></div>
+            <div class="form-group"><label>Warna Aksen</label><input id="s-col" type="color" style="height:44px; padding:4px;" /></div>
+            <div class="form-group"><label>Jam Masuk (WIB)</label><input id="s-in" type="time" required /></div>
+            <div class="form-group"><label>Link Kurir Foto Google Drive</label><input id="s-drv" placeholder="https://script.google.com/macros/s/.../exec" /></div>
+            <button type="submit" class="btn-primary">Simpan Pengaturan</button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
 </div>
 
 <script>
-// =========================================================================
-// KONFIGURASI SUPABASE (TEMPEL URL & ANON KEY DARI PROYEK ATK KAMU DI SINI)
-// =========================================================================
-const SUPABASE_URL = 'https://mqtirqxmballmerllifu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xdGlycXhtYmFsbG1lcmxsaWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUwNTYzMTUsImV4cCI6MjExMDYzMjMxNX0.T4kVEg2SNpLWB19CEv9FYFgbVkvZl806834AUXn9YZw';
-const DRIVE_SECRET_KEY = 'HRIS-PAMUJA-2026';
+  var empSession = null, currentGPS = null, pendingAbsenType = null;
+  var hrCache = { employees: [], locations: [], bpjs: [], attendance: [] };
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// State Global
-let hrSettings = {};
-let allLocations = [];
-let allEmployees = [];
-let allBpjs = [];
-let currentAttRows = [];
-let empSession = null;
-let currentGPS = null;
-let pendingAbsenType = null;
-
-// ================= INIT =================
-window.addEventListener('DOMContentLoaded', async () => {
-  if (localStorage.getItem('hris_theme') === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.getElementById('btnTheme').textContent = '☀ Light Mode';
-  }
-  await loadPublicBranding();
-
-  // Cek sesi HR
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) return openHrDashboard(session.user);
-
-  // Cek sesi Karyawan tersimpan (biar orang tua gak login ulang tiap hari)
-  const savedEmp = localStorage.getItem('hris_emp_cred');
-  if (savedEmp) {
-    const cred = JSON.parse(savedEmp);
-    await loginEmpProcess(cred.nik, cred.pin, true);
-  }
-});
-
-async function loadPublicBranding() {
-  try {
-    const { data } = await sb.rpc('hris_get_public_settings');
-    if (data && data.company_name) applyBranding(data);
-  } catch (e) {}
-}
-
-function applyBranding(s) {
-  if (s.primary_color) document.documentElement.style.setProperty('--accent', s.primary_color);
-  document.title = (s.company_name || 'HRIS') + ' — HRIS';
-  ['loginCompanyName', 'sideCompany', 'empCompName', 'mobBrand'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = s.company_name || 'HRIS';
-  });
-  ['loginSubtitle', 'sideSubtitle'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = s.app_subtitle || 'Human Resource & Operations';
-  });
-}
-
-function switchLoginTab(tab) {
-  document.getElementById('loginMsg').textContent = '';
-  document.getElementById('tabEmp').classList.toggle('active', tab === 'emp');
-  document.getElementById('tabHr').classList.toggle('active', tab === 'hr');
-  document.getElementById('formEmpLogin').classList.toggle('hidden', tab !== 'emp');
-  document.getElementById('formHrLogin').classList.toggle('hidden', tab !== 'hr');
-}
-
-// ================= KARYAWAN LOGIN & ABSENSI =================
-async function handleEmpLogin(e) {
-  e.preventDefault();
-  await loginEmpProcess(document.getElementById('empNik').value, document.getElementById('empPin').value, false);
-}
-
-async function loginEmpProcess(nik, pin, silent) {
-  const btn = document.getElementById('btnEmpLogin');
-  if (!silent) { btn.disabled = true; btn.textContent = 'Memeriksa...'; }
-  const { data, error } = await sb.rpc('hris_employee_login', { p_nik: nik, p_pin: pin });
-  if (!silent) { btn.disabled = false; btn.textContent = 'MASUK ABSENSI'; }
-
-  if (error || !data || data.status !== 'success') {
-    localStorage.removeItem('hris_emp_cred');
-    if (!silent) document.getElementById('loginMsg').textContent = data?.message || 'Gagal login.';
-    return;
-  }
-
-  localStorage.setItem('hris_emp_cred', JSON.stringify({ nik, pin }));
-  empSession = { ...data, nik, pin };
-  applyBranding(data.settings || {});
-  document.getElementById('loginView').classList.add('hidden');
-  document.getElementById('empView').classList.remove('hidden');
-
-  document.getElementById('empName').textContent = data.employee.nama_lengkap;
-  document.getElementById('empLocInfo').textContent = data.location
-    ? `Penempatan: ${data.location.nama_lokasi} (${data.location.kota})`
-    : 'Penempatan: Belum diatur HR';
-
-  updateAbsenButtons(data.today_attendance);
-  startLiveClock();
-  refreshGPS();
-}
-
-function empLogout() {
-  localStorage.removeItem('hris_emp_cred');
-  location.reload();
-}
-
-function startLiveClock() {
-  const tick = () => {
-    const now = new Date();
-    document.getElementById('liveClock').textContent = now.toLocaleTimeString('id-ID', { hour12: false });
-    document.getElementById('liveDate').textContent = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  window.onload = function() {
+    if (localStorage.getItem('hris_dark') === '1') document.body.classList.add('dark');
+    document.getElementById('filter-date').value = getTodayWIB();
+    loadBranding();
+    checkExistingSession();
   };
-  tick(); setInterval(tick, 1000);
-}
 
-function updateAbsenButtons(att) {
-  const bIn = document.getElementById('btnAbsenMasuk');
-  const bOut = document.getElementById('btnAbsenPulang');
-  if (att && att.jam_masuk) {
-    bIn.classList.add('big-done'); bIn.disabled = true;
-    document.getElementById('subInText').textContent = '✓ Sudah masuk pukul ' + formatTime(att.jam_masuk);
+  function getTodayWIB() { return new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10); }
+
+  function applyBranding(b) {
+    if (!b || !b.company_name) return;
+    if (b.primary_color) document.documentElement.style.setProperty('--primary', b.primary_color);
+    document.title = b.company_name + ' — HRIS';
+    ['login-company','emp-company','hr-company','hr-mobile-title'].forEach(function(id){ document.getElementById(id).textContent = b.company_name; });
+    ['login-sub','hr-sub'].forEach(function(id){ document.getElementById(id).textContent = b.app_subtitle || 'Human Resource & Operations'; });
   }
-  if (att && att.jam_pulang) {
-    bOut.classList.add('big-done'); bOut.disabled = true;
-    document.getElementById('subOutText').textContent = '✓ Sudah pulang pukul ' + formatTime(att.jam_pulang);
-  }
-}
 
-function toggleDinasLuar() {
-  document.getElementById('ketDinasLuar').classList.toggle('hidden', !document.getElementById('chkDinasLuar').checked);
-}
-
-function refreshGPS() {
-  const el = document.getElementById('gpsStatusText');
-  el.textContent = 'Mencari koordinat GPS...';
-  if (!navigator.geolocation) { el.textContent = 'Browser HP tidak mendukung GPS.'; return; }
-  navigator.geolocation.getCurrentPosition(pos => {
-    currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    if (empSession.location) {
-      const dist = calcDistance(currentGPS.lat, currentGPS.lng, empSession.location.latitude, empSession.location.longitude);
-      currentGPS.distance = Math.round(dist);
-      const ok = dist <= empSession.location.radius_meter;
-      el.innerHTML = ok
-        ? `<span style="color:var(--green);font-weight:700;">✓ Di dalam area lokasi (${currentGPS.distance} m)</span>`
-        : `<span style="color:var(--red);font-weight:700;">✕ Di luar area (${currentGPS.distance} m, maks ${empSession.location.radius_meter} m)</span>`;
-    } else {
-      currentGPS.distance = 0;
-      el.innerHTML = `<span style="color:var(--green);">✓ GPS Aktif (${currentGPS.lat.toFixed(5)}, ${currentGPS.lng.toFixed(5)})</span>`;
-    }
-  }, err => {
-    el.innerHTML = `<span style="color:var(--red);">Gagal ambil GPS. Pastikan Lokasi (GPS) HP menyala & izinkan browser.</span>`;
-  }, { enableHighAccuracy: true, timeout: 15000 });
-}
-
-function calcDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000, dLat = (lat2 - lat1) * Math.PI / 180, dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function triggerAbsen(tipe) {
-  const msg = document.getElementById('empStatusMsg');
-  msg.textContent = '';
-  if (!currentGPS) return alert('GPS belum terdeteksi. Klik "Cek Ulang GPS" dulu ya.');
-
-  const isDL = document.getElementById('chkDinasLuar').checked;
-  const ketDL = document.getElementById('ketDinasLuar').value.trim();
-
-  if (empSession.location && currentGPS.distance > empSession.location.radius_meter && !isDL) {
-    return alert(`Jarak Anda ${currentGPS.distance} meter dari lokasi (maksimal ${empSession.location.radius_meter} m). Jika sedang tugas luar, centang "Sedang Dinas Luar".`);
-  }
-  if (isDL && !ketDL) return alert('Isi keterangan dinas luar terlebih dahulu.');
-
-  pendingAbsenType = tipe;
-  document.getElementById('cameraInput').value = '';
-  document.getElementById('cameraInput').click();
-}
-
-async function onPhotoCaptured(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const msg = document.getElementById('empStatusMsg');
-  msg.style.color = 'var(--blue)';
-  msg.textContent = '1/3 Mengecilkan ukuran foto...';
-
-  try {
-    const base64 = await compressImage(file, 640, 0.6);
-    let fotoUrl = '';
-
-    // Upload ke Kurir Google Drive (dengan 3x Auto-Retry jika antrean penuh)
-    const webhook = empSession.settings?.drive_webhook_url;
-    if (webhook) {
-      msg.textContent = '2/3 Mengirim foto ke Google Drive...';
-      const payload = JSON.stringify({
-        secret: DRIVE_SECRET_KEY,
-        lokasi: empSession.location?.nama_lokasi || 'Umum',
-        tipe: pendingAbsenType,
-        namaKaryawan: empSession.employee.nama_lengkap,
-        imageBase64: base64
-      });
-      for (let i = 1; i <= 3; i++) {
-        try {
-          const res = await fetch(webhook, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: payload
-          });
-          const json = await res.json();
-          if (json.status === 'success') { fotoUrl = json.url; break; }
-        } catch (err) {
-          if (i < 3) { msg.textContent = `Antrean padat, mencoba ulang (${i}/3)...`; await new Promise(r => setTimeout(r, 2000)); }
-        }
-      }
-    }
-
-    msg.textContent = '3/3 Menyimpan jam absen ke server...';
-    const isDL = document.getElementById('chkDinasLuar').checked;
-    const ket = isDL ? '[DINAS LUAR] ' + document.getElementById('ketDinasLuar').value.trim() : '';
-
-    const { data, error } = await sb.rpc('hris_submit_attendance', {
-      p_nik: empSession.nik,
-      p_pin: empSession.pin,
-      p_tipe: pendingAbsenType,
-      p_lat: currentGPS.lat,
-      p_lng: currentGPS.lng,
-      p_jarak: currentGPS.distance || 0,
-      p_foto_url: fotoUrl,
-      p_keterangan: ket
+  function loadBranding() {
+    sb.rpc('hris_get_public_branding').then(function(r) {
+      if (r.data && r.data.company_name) applyBranding(r.data);
+      else sb.rpc('hris_get_public_settings').then(function(r2){ if (r2.data) applyBranding(r2.data); });
     });
+  }
 
-    if (error || data?.status !== 'success') {
-      msg.style.color = 'var(--red)';
-      msg.textContent = data?.message || 'Gagal menyimpan absensi.';
-      return;
+  function checkExistingSession() {
+    sb.auth.getSession().then(function(res) {
+      if (res.data && res.data.session) { openHrDashboard(res.data.session.user.email); return; }
+      var saved = localStorage.getItem('hris_emp_cred');
+      if (saved) { try { var c = JSON.parse(saved); callEmpLogin(c.nik, c.pin, true); } catch(e){} }
+    });
+  }
+
+  function switchLoginTab(tab) {
+    document.getElementById('login-msg').classList.add('hidden');
+    document.getElementById('tab-emp').classList.toggle('active', tab === 'emp');
+    document.getElementById('tab-hr').classList.toggle('active', tab === 'hr');
+    document.getElementById('form-emp-login').classList.toggle('hidden', tab !== 'emp');
+    document.getElementById('form-hr-login').classList.toggle('hidden', tab !== 'hr');
+  }
+
+  function showLoginErr(msg) { var el = document.getElementById('login-msg'); el.textContent = msg; el.classList.remove('hidden'); }
+
+  function handleEmpLogin(e) {
+    e.preventDefault();
+    callEmpLogin(document.getElementById('emp-nik').value.trim(), document.getElementById('emp-pin').value.trim(), false);
+  }
+
+  function callEmpLogin(nik, pin, silent) {
+    var btn = document.getElementById('btn-emp-login');
+    if (!silent) { btn.disabled = true; btn.textContent = 'Memeriksa...'; }
+    sb.rpc('hris_emp_login', { p_nik: nik, p_pin: pin }).then(function(res) {
+      if (res.error) return sb.rpc('hris_employee_login', { p_nik: nik, p_pin: pin });
+      return res;
+    }).then(function(res) {
+      if (!silent) { btn.disabled = false; btn.textContent = 'MASUK ABSENSI'; }
+      var d = res.data;
+      if (res.error || !d || (d.ok !== true && d.status !== 'success')) {
+        if (!silent) showLoginErr(d && d.message ? d.message : 'ID atau PIN salah.');
+        return;
+      }
+      localStorage.setItem('hris_emp_cred', JSON.stringify({ nik: nik, pin: pin }));
+      empSession = { data: d, nik: nik, pin: pin };
+      applyBranding(d.settings);
+      document.getElementById('view-login').classList.add('hidden');
+      document.getElementById('view-emp').classList.remove('hidden');
+      document.getElementById('emp-name').textContent = d.employee.nama_lengkap;
+      document.getElementById('emp-loc-label').textContent = d.location ? ('Penempatan: ' + d.location.nama_lokasi + ' (' + d.location.kota + ')') : 'Penempatan: Belum diatur HR';
+      renderEmpToday(d.today || d.today_attendance);
+      startClock();
+      refreshGPS();
+    });
+  }
+
+  function renderEmpToday(t) {
+    document.getElementById('st-masuk').textContent = (t && t.jam_masuk) ? formatTimeWIB(t.jam_masuk) : '--:--';
+    document.getElementById('st-pulang').textContent = (t && t.jam_pulang) ? formatTimeWIB(t.jam_pulang) : '--:--';
+    document.getElementById('btn-masuk').disabled = !!(t && t.jam_masuk);
+    document.getElementById('btn-pulang').disabled = !(t && t.jam_masuk) || !!(t && t.jam_pulang);
+  }
+
+  function formatTimeWIB(iso) {
+    if (!iso) return '--:--';
+    return new Date(iso).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function startClock() {
+    function tick() {
+      var n = new Date();
+      document.getElementById('emp-clock').textContent = n.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('emp-date').textContent = n.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     }
-
-    msg.style.color = 'var(--green)';
-    msg.textContent = `✓ Absen ${pendingAbsenType} BERHASIL tercatat!`;
-    // Refresh state tombol
-    await loginEmpProcess(empSession.nik, empSession.pin, true);
-  } catch (err) {
-    msg.style.color = 'var(--red)';
-    msg.textContent = 'Terjadi kesalahan saat memproses foto.';
+    tick(); setInterval(tick, 1000);
   }
-}
 
-function compressImage(file, maxW, quality) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, maxW / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+  function calcDistance(lat1, lon1, lat2, lon2) {
+    var R = 6371000, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  }
+
+  function refreshGPS() {
+    var box = document.getElementById('gps-box'), title = document.getElementById('gps-title'), desc = document.getElementById('gps-desc');
+    box.className = 'gps-box'; title.textContent = 'Mencari titik GPS...'; desc.textContent = 'Mohon tunggu sebentar.';
+    if (!navigator.geolocation) { box.className = 'gps-box gps-warn'; title.textContent = 'HP tidak mendukung GPS'; return; }
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      var loc = empSession.data.location;
+      var jarak = loc ? calcDistance(pos.coords.latitude, pos.coords.longitude, loc.latitude, loc.longitude) : 0;
+      var inRad = !loc || jarak <= loc.radius_meter;
+      currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, jarak: jarak, inRadius: inRad };
+      box.className = 'gps-box ' + (inRad ? 'gps-ok' : 'gps-warn');
+      title.textContent = inRad ? 'Lokasi Sesuai (Siap Absen)' : ('Di Luar Radius (' + jarak + ' meter)');
+      desc.textContent = loc ? ('Jarak: ' + jarak + ' m (batas ' + loc.radius_meter + ' m)') : 'GPS aktif.';
+    }, function() {
+      box.className = 'gps-box gps-warn'; title.textContent = 'GPS Gagal Terbaca'; desc.textContent = 'Nyalakan GPS dan izinkan browser mengakses lokasi.';
+    }, { enableHighAccuracy: true, timeout: 15000 });
+  }
+
+  function showEmpMsg(msg, ok) {
+    var el = document.getElementById('emp-msg');
+    el.textContent = msg; el.className = 'alert ' + (ok ? 'alert-ok' : 'alert-err'); el.classList.remove('hidden');
+  }
+
+  function startAbsen(tipe) {
+    document.getElementById('emp-msg').classList.add('hidden');
+    if (!currentGPS) { showEmpMsg('Tunggu GPS terbaca dulu.', false); return; }
+    if (!currentGPS.inRadius && !confirm('Anda di luar radius (' + currentGPS.jarak + ' m). Lanjutkan sebagai Dinas Luar?')) return;
+    pendingAbsenType = tipe;
+    var inp = document.getElementById('camera-input'); inp.value = ''; inp.click();
+  }
+
+  function compressImage(file, cb) {
+    var r = new FileReader();
+    r.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        var scale = img.width > 640 ? (640 / img.width) : 1;
+        var c = document.createElement('canvas'); c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        cb(c.toDataURL('image/jpeg', 0.65));
       };
-      img.onerror = reject;
-      img.src = ev.target.result;
+      img.src = e.target.result;
     };
-    reader.readAsDataURL(file);
-  });
-}
-
-// ================= HR LOGIN & DASHBOARD =================
-async function handleHrLogin(e) {
-  e.preventDefault();
-  const btn = document.getElementById('btnHrLogin');
-  btn.disabled = true; btn.textContent = 'Memeriksa...';
-  const { data, error } = await sb.auth.signInWithPassword({
-    email: document.getElementById('hrEmail').value,
-    password: document.getElementById('hrPass').value
-  });
-  btn.disabled = false; btn.textContent = 'MASUK DASHBOARD HR';
-  if (error) { document.getElementById('loginMsg').textContent = 'Email atau password salah.'; return; }
-  openHrDashboard(data.user);
-}
-
-async function openHrDashboard(user) {
-  document.getElementById('loginView').classList.add('hidden');
-  document.getElementById('hrView').classList.remove('hidden');
-  document.getElementById('hrUserEmail').textContent = user.email;
-  document.getElementById('filterAttDate').value = new Date().toLocaleDateString('en-CA');
-  await loadAllHrData();
-}
-
-async function hrLogout() { await sb.auth.signOut(); location.reload(); }
-
-function showHrPage(id, btn) {
-  ['dash', 'att', 'bpjs', 'emp', 'loc', 'set'].forEach(p => document.getElementById('page-' + p).classList.add('hidden'));
-  document.getElementById('page-' + id).classList.remove('hidden');
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  document.getElementById('hrSidebar').classList.remove('open');
-}
-
-function toggleTheme() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-  localStorage.setItem('hris_theme', isDark ? 'light' : 'dark');
-  document.getElementById('btnTheme').textContent = isDark ? '☾ Dark Mode' : '☀ Light Mode';
-}
-
-async function loadAllHrData() {
-  const [setRes, locRes, empRes, bpjsRes] = await Promise.all([
-    sb.from('hris_settings').select('*').eq('id', 1).single(),
-    sb.from('hris_locations').select('*').order('kota'),
-    sb.from('hris_employees').select('*').order('nama_lengkap'),
-    sb.from('hris_bpjs').select('*')
-  ]);
-
-  if (setRes.data) {
-    hrSettings = setRes.data;
-    applyBranding(hrSettings);
-    document.getElementById('setCompName').value = hrSettings.company_name || '';
-    document.getElementById('setSubtitle').value = hrSettings.app_subtitle || '';
-    document.getElementById('setColor').value = hrSettings.primary_color || '#EA580C';
-    document.getElementById('setCheckIn').value = (hrSettings.default_check_in || '08:00').slice(0, 5);
-    document.getElementById('setWebhook').value = hrSettings.drive_webhook_url || '';
+    r.readAsDataURL(file);
   }
 
-  allLocations = locRes.data || [];
-  allEmployees = empRes.data || [];
-  allBpjs = bpjsRes.data || [];
-
-  // Isi filter lokasi
-  const selLoc = document.getElementById('filterAttLoc');
-  selLoc.innerHTML = '<option value="">Semua Lokasi</option>' +
-    allLocations.map(l => `<option value="${l.id}">${l.nama_lokasi} (${l.kota})</option>`).join('');
-
-  renderLocTable();
-  renderEmpTable();
-  renderBpjsTable();
-  await loadAttendanceTable();
-}
-
-// --- ABSENSI & DASHBOARD ---
-async function loadAttendanceTable() {
-  const dt = document.getElementById('filterAttDate').value;
-  const locId = document.getElementById('filterAttLoc').value;
-  const { data } = await sb.from('hris_attendance').select('*').eq('tanggal', dt).order('jam_masuk', { ascending: false });
-  const attMap = data || [];
-
-  const empMap = Object.fromEntries(allEmployees.map(e => [e.id, e]));
-  const locMap = Object.fromEntries(allLocations.map(l => [l.id, l]));
-
-  currentAttRows = attMap.filter(a => !locId || empMap[a.employee_id]?.location_id === locId);
-
-  // KPI Dashboard (khusus hari ini)
-  const activeEmps = allEmployees.filter(e => e.status_kerja === 'AKTIF');
-  document.getElementById('kpiTotalEmp').textContent = activeEmps.length;
-  const todayStr = new Date().toLocaleDateString('en-CA');
-  if (dt === todayStr) {
-    document.getElementById('kpiHadir').textContent = attMap.length;
-    document.getElementById('kpiBelum').textContent = Math.max(0, activeEmps.length - attMap.length);
-    document.getElementById('dashRecentBody').innerHTML = attMap.slice(0, 8).map(a => {
-      const emp = empMap[a.employee_id] || {};
-      const loc = locMap[emp.location_id]?.nama_lokasi || '-';
-      return `<tr>
-        <td><strong>${emp.nama_lengkap || '-'}</strong></td>
-        <td>${loc}</td>
-        <td>${formatTime(a.jam_masuk)}</td>
-        <td><span class="badge ${a.status==='HADIR'?'b-green':a.status==='TERLAMBAT'?'b-orange':'b-blue'}">${a.status}</span></td>
-        <td>${a.foto_masuk_url ? `<a href="${a.foto_masuk_url}" target="_blank">Lihat Foto</a>` : '-'}</td>
-      </tr>`;
-    }).join('') || '<tr><td colspan="5" style="color:var(--muted);">Belum ada absensi hari ini.</td></tr>';
+  function uploadDrive(url, payload, attempt, done) {
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if (res && res.status === 'success') done(null, res.url);
+        else if (attempt < 3) setTimeout(function(){ uploadDrive(url, payload, attempt+1, done); }, 2000);
+        else done('Gagal upload foto');
+      }).catch(function(){
+        if (attempt < 3) setTimeout(function(){ uploadDrive(url, payload, attempt+1, done); }, 2000);
+        else done('Koneksi terganggu');
+      });
   }
 
-  document.getElementById('attTableBody').innerHTML = currentAttRows.map(a => {
-    const emp = empMap[a.employee_id] || {};
-    const loc = locMap[emp.location_id]?.nama_lokasi || '-';
-    return `<tr>
-      <td>${emp.nik_karyawan || '-'}</td>
-      <td><strong>${emp.nama_lengkap || '-'}</strong></td>
-      <td>${loc}</td>
-      <td>${formatTime(a.jam_masuk)}</td>
-      <td>${a.jam_pulang ? formatTime(a.jam_pulang) : '-'}</td>
-      <td>${a.jarak_masuk_meter ?? '-'} m</td>
-      <td><span class="badge ${a.status==='HADIR'?'b-green':a.status==='TERLAMBAT'?'b-orange':'b-blue'}">${a.status}</span></td>
-      <td>
-        ${a.foto_masuk_url ? `<a href="${a.foto_masuk_url}" target="_blank">Masuk</a>` : '-'}
-        ${a.foto_pulang_url ? ` | <a href="${a.foto_pulang_url}" target="_blank">Pulang</a>` : ''}
-      </td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="8" style="color:var(--muted);">Tidak ada data absensi di tanggal ini.</td></tr>';
-}
+  function onPhotoCaptured(e) {
+    var file = e.target.files[0]; if (!file) return;
+    showEmpMsg('Mengirim foto & menyimpan absensi... Mohon tunggu.', true);
+    document.getElementById('btn-masuk').disabled = true; document.getElementById('btn-pulang').disabled = true;
+    compressImage(file, function(base64) {
+      var webhook = empSession.data.settings ? empSession.data.settings.drive_webhook_url : '';
+      var locName = empSession.data.location ? empSession.data.location.nama_lokasi : 'Tanpa_Lokasi';
+      function saveDb(fotoUrl) {
+        var params = { p_nik: empSession.nik, p_pin: empSession.pin, p_tipe: pendingAbsenType, p_lat: currentGPS.lat, p_lng: currentGPS.lng, p_jarak: currentGPS.jarak, p_foto_url: fotoUrl, p_keterangan: currentGPS.inRadius ? '' : ('Dinas Luar ' + currentGPS.jarak + 'm') };
+        sb.rpc('hris_emp_submit_attendance', params).then(function(res){
+          if (res.error) return sb.rpc('hris_submit_attendance', params);
+          return res;
+        }).then(function(res) {
+          var d = res.data;
+          if (res.error || !d || (d.ok !== true && d.status !== 'success')) { showEmpMsg(d && d.message ? d.message : 'Gagal simpan absen', false); return; }
+          showEmpMsg('BERHASIL! Absen ' + pendingAbsenType + ' tercatat.', true);
+          callEmpLogin(empSession.nik, empSession.pin, true);
+        });
+      }
+      if (webhook && webhook.indexOf('script.google.com') !== -1) {
+        uploadDrive(webhook, { secret: DRIVE_SECRET, lokasi: locName, tipe: pendingAbsenType, namaKaryawan: empSession.data.employee.nama_lengkap, imageBase64: base64 }, 1, function(err, url){ saveDb(err ? '' : url); });
+      } else saveDb('');
+    });
+  }
 
-// --- KONTROL BPJS ---
-function renderBpjsTable() {
-  const filter = document.getElementById('filterBpjsStatus').value;
-  const bpjsMap = Object.fromEntries(allBpjs.map(b => [b.employee_id, b]));
-  let alertCount = 0;
+  function logoutEmp() { localStorage.removeItem('hris_emp_cred'); location.reload(); }
 
-  const rows = allEmployees.map(e => {
-    const b = bpjsMap[e.id] || { status_jkn: 'BELUM_DAFTAR', status_kpj: 'BELUM_DAFTAR', no_jkn: '', no_kpj: '' };
-    const isAlert =
-      (e.status_kerja === 'AKTIF' && (b.status_jkn === 'BELUM_DAFTAR' || b.status_kpj === 'BELUM_DAFTAR')) ||
-      (e.status_kerja !== 'AKTIF' && (b.status_jkn === 'AKTIF' || b.status_kpj === 'AKTIF')) ||
-      b.status_jkn === 'PERLU_NONAKTIF' || b.status_kpj === 'PERLU_NONAKTIF';
-    if (isAlert) alertCount++;
-    return { e, b, isAlert };
-  });
+  // ===== HR DASHBOARD =====
+  function handleHrLogin(e) {
+    e.preventDefault();
+    var btn = document.getElementById('btn-hr-login'); btn.disabled = true; btn.textContent = 'Memeriksa...';
+    sb.auth.signInWithPassword({ email: document.getElementById('hr-email').value.trim(), password: document.getElementById('hr-pass').value }).then(function(res) {
+      btn.disabled = false; btn.textContent = 'MASUK DASHBOARD HR';
+      if (res.error) { showLoginErr(res.error.message); return; }
+      openHrDashboard(res.data.user.email);
+    });
+  }
 
-  document.getElementById('kpiBpjsAlert').textContent = alertCount;
+  function openHrDashboard(email) {
+    document.getElementById('view-login').classList.add('hidden');
+    document.getElementById('view-hr').classList.remove('hidden');
+    document.getElementById('hr-user-email').textContent = email;
+    loadHrData();
+  }
 
-  const filtered = rows.filter(r => {
-    if (filter === 'ALERT') return r.isAlert;
-    if (filter === 'AKTIF') return r.b.status_jkn === 'AKTIF' && r.b.status_kpj === 'AKTIF';
-    return true;
-  });
+  function showHrPage(id, btn) {
+    ['dash','absen','bpjs','emp','loc','set'].forEach(function(p){ document.getElementById('page-' + p).classList.toggle('hidden', p !== id); });
+    document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    document.getElementById('hr-sidebar').classList.remove('open');
+  }
 
-  const badge = st => `<span class="badge ${st==='AKTIF'?'b-green':st==='PROSES_DAFTAR'?'b-blue':st==='NONAKTIF'?'b-gray':'b-red'}">${st}</span>`;
+  function toggleDark() { document.body.classList.toggle('dark'); localStorage.setItem('hris_dark', document.body.classList.contains('dark') ? '1' : '0'); }
+  function logoutHr() { sb.auth.signOut().then(function(){ location.reload(); }); }
 
-  document.getElementById('bpjsTableBody').innerHTML = filtered.map(({ e, b }) => `<tr>
-    <td><strong>${e.nama_lengkap}</strong><br><small style="color:var(--muted);">${e.nik_karyawan}</small></td>
-    <td><span class="badge ${e.status_kerja==='AKTIF'?'b-green':'b-gray'}">${e.status_kerja}</span></td>
-    <td>${e.nik_ktp || '<span style="color:var(--red);">Kosong</span>'}</td>
-    <td>${badge(b.status_jkn)}</td>
-    <td>${b.no_jkn || '-'}</td>
-    <td>${badge(b.status_kpj)}</td>
-    <td>${b.no_kpj || '-'}</td>
-    <td><button class="btn btn-outline btn-sm" onclick="openBpjsModal('${e.id}')">Update</button></td>
-  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--muted);">Belum ada data karyawan.</td></tr>';
-}
+  function loadHrData() {
+    Promise.all([
+      sb.from('hris_settings').select('*').eq('id', 1).single(),
+      sb.from('hris_locations').select('*').order('kota'),
+      sb.from('hris_employees').select('*, hris_locations(nama_lokasi, kota)').order('nama_lengkap'),
+      sb.from('hris_bpjs').select('*, hris_employees(nik_karyawan, nama_lengkap, nik_ktp, status_kerja)')
+    ]).then(function(r) {
+      var s = r[0].data;
+      if (s) {
+        applyBranding(s);
+        document.getElementById('s-comp').value = s.company_name || '';
+        document.getElementById('s-sub').value = s.app_subtitle || '';
+        document.getElementById('s-col').value = s.primary_color || '#EA580C';
+        document.getElementById('s-in').value = (s.default_check_in || '08:00').slice(0,5);
+        document.getElementById('s-drv').value = s.drive_webhook_url || '';
+      }
+      hrCache.locations = r[1].data || []; hrCache.employees = r[2].data || []; hrCache.bpjs = r[3].data || [];
+      renderLocations(); renderEmployees(); renderBpjs(); loadAttendance();
+    });
+  }
 
-function openBpjsModal(empId) {
-  const emp = allEmployees.find(x => x.id === empId);
-  const b = allBpjs.find(x => x.employee_id === empId) || {};
-  const opts = ['BELUM_DAFTAR', 'PROSES_DAFTAR', 'AKTIF', 'PERLU_NONAKTIF', 'NONAKTIF'];
-  const mkOpt = cur => opts.map(o => `<option value="${o}" ${cur===o?'selected':''}>${o}</option>`).join('');
+  function renderLocations() {
+    document.getElementById('k-loc').textContent = hrCache.locations.length;
+    var sel = document.getElementById('f-loc'); sel.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
+    var html = '';
+    hrCache.locations.forEach(function(l) {
+      sel.innerHTML += '<option value="' + l.id + '">' + l.nama_lokasi + ' (' + l.kota + ')</option>';
+      html += '<tr><td><strong>' + l.kode_lokasi + '</strong></td><td>' + l.nama_lokasi + '</td><td>' + l.kota + '</td><td>' + l.latitude + ', ' + l.longitude + '</td><td>' + l.radius_meter + ' m</td></tr>';
+    });
+    document.getElementById('loc-body').innerHTML = html || '<tr><td colspan="5">Belum ada lokasi.</td></tr>';
+  }
 
-  showModal(`
-    <div class="modal-head"><h3>Update BPJS — ${emp.nama_lengkap}</h3><button class="btn btn-outline btn-sm" onclick="closeModal()">✕</button></div>
-    <form onsubmit="saveBpjs(event, '${empId}')">
-      <div class="row-2">
-        <div class="form-group"><label>Status JKN (Kesehatan)</label><select id="mJknSt">${mkOpt(b.status_jkn || 'BELUM_DAFTAR')}</select></div>
-        <div class="form-group"><label>Nomor JKN</label><input id="mJknNo" value="${b.no_jkn || ''}"></div>
-      </div>
-      <div class="form-group"><label>Faskes Tingkat 1</label><input id="mFaskes" value="${b.faskes_tk1 || ''}"></div>
-      <div class="row-2">
-        <div class="form-group"><label>Status KPJ (Ketenagakerjaan)</label><select id="mKpjSt">${mkOpt(b.status_kpj || 'BELUM_DAFTAR')}</select></div>
-        <div class="form-group"><label>Nomor KPJ</label><input id="mKpjNo" value="${b.no_kpj || ''}"></div>
-      </div>
-      <div class="form-group"><label>Catatan HR</label><input id="mCat" value="${b.catatan_hr || ''}"></div>
-      <button type="submit" class="btn btn-primary" style="width:100%;">Simpan Status BPJS</button>
-    </form>
-  `);
-}
+  function renderEmployees() {
+    var aktif = 0, html = '';
+    hrCache.employees.forEach(function(e) {
+      if (e.status_kerja === 'AKTIF') aktif++;
+      var loc = e.hris_locations ? (e.hris_locations.nama_lokasi + ' (' + e.hris_locations.kota + ')') : '-';
+      var pinVal = e.pin_code || e.pin || '123456';
+      html += '<tr><td><strong>' + e.nik_karyawan + '</strong></td><td>' + e.nama_lengkap + '</td><td>' + e.kategori + '</td><td>' + loc + '</td><td>' + pinVal + '</td><td><span class="badge ' + (e.status_kerja==='AKTIF'?'b-green':'b-red') + '">' + e.status_kerja + '</span></td><td>' + (e.status_kerja==='AKTIF' ? '<button class="btn-outline" onclick="setResign(\'' + e.id + '\')">Resign</button>' : '-') + '</td></tr>';
+    });
+    document.getElementById('k-emp').textContent = aktif;
+    document.getElementById('emp-body').innerHTML = html || '<tr><td colspan="7">Belum ada karyawan.</td></tr>';
+  }
 
-async function saveBpjs(e, empId) {
-  e.preventDefault();
-  await sb.from('hris_bpjs').upsert({
-    employee_id: empId,
-    status_jkn: document.getElementById('mJknSt').value,
-    no_jkn: document.getElementById('mJknNo').value,
-    faskes_tk1: document.getElementById('mFaskes').value,
-    status_kpj: document.getElementById('mKpjSt').value,
-    no_kpj: document.getElementById('mKpjNo').value,
-    catatan_hr: document.getElementById('mCat').value,
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'employee_id' });
-  closeModal();Kita masuk ke **Langkah 3: Menghidupkan Web App HRIS (Dual UI: Dashboard HR + Absensi HP Ramah Orang Tua)**.
+  function badgeStatus(st) {
+    if (st === 'AKTIF') return '<span class="badge b-green">AKTIF</span>';
+    if (st === 'PERLU_NONAKTIF' || st === 'BELUM_DAFTAR') return '<span class="badge b-red">' + st + '</span>';
+    if (st === 'PROSES_DAFTAR') return '<span class="badge b-orange">' + st + '</span>';
+    return '<span class="badge b-gray">' + st + '</span>';
+  }
 
-Supaya kamu tidak perlu instal software coding apa pun di Windows 10 dan tidak ada error saat *deploy*, seluruh aplikasi tahap awal ini kita kemas rapi dalam **1 file (`index.html`)** yang ringan untuk HP jadul (Android/iOS lama), *100% white-label*, dan tampilannya seragam dengan aplikasi ATK-mu.
+  function renderBpjs() {
+    var alertCount = 0, dashHtml = '', bodyHtml = '';
+    hrCache.bpjs.forEach(function(b) {
+      var emp = b.hris_employees || {};
+      if (b.status_jkn === 'BELUM_DAFTAR' || b.status_jkn === 'PERLU_NONAKTIF' || b.status_kpj === 'BELUM_DAFTAR' || b.status_kpj === 'PERLU_NONAKTIF') {
+        alertCount++;
+        dashHtml += '<tr><td><strong>' + (emp.nik_karyawan||'-') + '</strong></td><td>' + (emp.nama_lengkap||'-') + '</td><td>' + (emp.status_kerja||'-') + '</td><td>' + badgeStatus(b.status_jkn) + '</td><td>' + badgeStatus(b.status_kpj) + '</td></tr>';
+      }
+      bodyHtml += '<tr><td><strong>' + (emp.nama_lengkap||'-') + '</strong></td><td>' + (emp.nik_ktp||'-') + '</td><td>' + (b.no_jkn||'-') + '</td><td>' + badgeStatus(b.status_jkn) + '</td><td>' + (b.no_kpj||'-') + '</td><td>' + badgeStatus(b.status_kpj) + '</td><td><button class="btn-outline" onclick="editBpjs(\'' + b.id + '\')">Update</button></td></tr>';
+    });
+    document.getElementById('k-bpjs').textContent = alertCount;
+    document.getElementById('dash-bpjs-body').innerHTML = dashHtml || '<tr><td colspan="5">Semua BPJS aman.</td></tr>';
+    document.getElementById('bpjs-body').innerHTML = bodyHtml || '<tr><td colspan="7">Belum ada data BPJS.</td></tr>';
+  }
 
-Ikuti 4 tahap singkat ini berurutan:
+  function loadAttendance() {
+    var tgl = document.getElementById('filter-date').value || getTodayWIB();
+    sb.from('hris_attendance').select('*, hris_employees(nik_karyawan, nama_lengkap, hris_locations(nama_lokasi))').eq('tanggal', tgl).order('jam_masuk', { ascending: false }).then(function(res) {
+      hrCache.attendance = res.data || [];
+      if (tgl === getTodayWIB()) document.getElementById('k-hadir').textContent = hrCache.attendance.length;
+      var html = '';
+      hrCache.attendance.forEach(function(a) {
+        var emp = a.hris_employees || {};
+        var loc = (emp.hris_locations && emp.hris_locations.nama_lokasi) ? emp.hris_locations.nama_lokasi : '-';
+        var foto = (a.foto_masuk_url ? '<a href="'+a.foto_masuk_url+'" target="_blank" style="color:var(--primary);margin-right:8px;">Masuk</a>' : '') + (a.foto_pulang_url ? '<a href="'+a.foto_pulang_url+'" target="_blank" style="color:var(--blue);">Pulang</a>' : '');
+        html += '<tr><td><strong>' + (emp.nama_lengkap||'-') + '</strong></td><td>' + loc + '</td><td>' + formatTimeWIB(a.jam_masuk) + '</td><td>' + formatTimeWIB(a.jam_pulang) + '</td><td>' + badgeStatus(a.status==='HADIR'?'AKTIF':a.status) + '</td><td>' + (foto||'-') + '</td></tr>';
+      });
+      document.getElementById('absen-body').innerHTML = html || '<tr><td colspan="6">Belum ada absensi.</td></tr>';
+    });
+  }
 
----
+  function addLocation(e) {
+    e.preventDefault();
+    sb.from('hris_locations').insert([{ kode_lokasi: document.getElementById('l-kode').value.trim().toUpperCase(), nama_lokasi: document.getElementById('l-nama').value.trim(), kota: document.getElementById('l-kota').value.trim(), latitude: parseFloat(document.getElementById('l-lat').value), longitude: parseFloat(document.getElementById('l-lng').value), radius_meter: parseInt(document.getElementById('l-rad').value, 10) }]).then(function(r){ if(r.error) alert(r.error.message); else { e.target.reset(); loadHrData(); } });
+  }
 
-## Tahap 3A: Tambah Fitur Login PIN Karyawan di Supabase (1 Menit)
+  function addEmployee(e) {
+    e.preventDefault();
+    var base = { nik_karyawan: document.getElementById('f-nik').value.trim().toUpperCase(), nama_lengkap: document.getElementById('f-nama').value.trim(), nik_ktp: document.getElementById('f-ktp').value.trim(), kategori: document.getElementById('f-kat').value, jabatan: document.getElementById('f-jab').value.trim(), location_id: document.getElementById('f-loc').value || null };
+    var pin = document.getElementById('f-pin').value.trim();
+    sb.from('hris_employees').insert([Object.assign({ pin: pin }, base)]).select().single().then(function(r) {
+      if (r.error) return sb.from('hris_employees').insert([Object.assign({ pin_code: pin }, base)]).select().single();
+      return r;
+    }).then(function(r) {
+      if (r.error) { alert(r.error.message); return; }
+      sb.from('hris_bpjs').insert([{ employee_id: r.data.id }]).then(function(){ e.target.reset(); document.getElementById('f-pin').value='123456'; loadHrData(); });
+    });
+  }
 
-Supaya 200 karyawan OS tidak perlu repot bikin email/password (cukup masuk pakai **ID Karyawan + PIN 6 angka**) sambil tetap menjaga database BPJS terkunci aman dari publik, jalankan kode SQL tambahan ini sekali saja.
+  function setResign(id) {
+    if (!confirm('Set RESIGN & tandai BPJS perlu dinonaktifkan?')) return;
+    sb.from('hris_employees').update({ status_kerja: 'RESIGN', tanggal_keluar: getTodayWIB() }).eq('id', id).then(function(){
+      sb.from('hris_bpjs').update({ status_jkn: 'PERLU_NONAKTIF', status_kpj: 'PERLU_NONAKTIF' }).eq('employee_id', id).then(loadHrData);
+    });
+  }
 
-1. Buka **Supabase** → **SQL Editor** → **+ New query**.
-2. *Copy-paste* kode di bawah ini lalu klik **Run**:
+  function editBpjs(id) {
+    var b = hrCache.bpjs.find(function(x){ return x.id === id; }); if (!b) return;
+    var noJkn = prompt('No. JKN:', b.no_jkn || ''); if (noJkn === null) return;
+    var stJkn = prompt('Status JKN (BELUM_DAFTAR / PROSES_DAFTAR / AKTIF / PERLU_NONAKTIF / NONAKTIF):', b.status_jkn); if (stJkn === null) return;
+    var noKpj = prompt('No. KPJ:', b.no_kpj || ''); if (noKpj === null) return;
+    var stKpj = prompt('Status KPJ (BELUM_DAFTAR / PROSES_DAFTAR / AKTIF / PERLU_NONAKTIF / NONAKTIF):', b.status_kpj); if (stKpj === null) return;
+    sb.from('hris_bpjs').update({ no_jkn: noJkn.trim(), status_jkn: stJkn.trim().toUpperCase(), no_kpj: noKpj.trim(), status_kpj: stKpj.trim().toUpperCase(), updated_at: new Date().toISOString() }).eq('id', id).then(loadHrData);
+  }
 
-```sql
--- 1. Tambah kolom PIN untuk login mudah karyawan OS (default: 123456)
-ALTER TABLE hris_employees 
-ADD COLUMN IF NOT EXISTS pin_code TEXT NOT NULL DEFAULT '123456';
+  function saveSettings(e) {
+    e.preventDefault();
+    sb.from('hris_settings').update({ company_name: document.getElementById('s-comp').value.trim(), app_subtitle: document.getElementById('s-sub').value.trim(), primary_color: document.getElementById('s-col').value, default_check_in: document.getElementById('s-in').value + ':00', drive_webhook_url: document.getElementById('s-drv').value.trim() }).eq('id', 1).then(function(r){ if(r.error) alert(r.error.message); else { alert('Tersimpan!'); loadHrData(); } });
+  }
 
--- 2. Fungsi ambil nama perusahaan & warna (White-Label di halaman Login)
-CREATE OR REPLACE FUNCTION hris_get_public_branding()
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_res JSONB;
-BEGIN
-  SELECT jsonb_build_object(
-    'company_name', company_name,
-    'app_subtitle', app_subtitle,
-    'primary_color', primary_color
-  ) INTO v_res FROM hris_settings WHERE id = 1;
-  RETURN COALESCE(v_res, '{"company_name":"WHITE-LABEL HRIS","app_subtitle":"Human Resource & Operations","primary_color":"#EA580C"}'::jsonb);
-END;
-$$;
-
--- 3. Fungsi Login Karyawan (ID + PIN) & cek status absen hari ini
-CREATE OR REPLACE FUNCTION hris_emp_login(p_nik TEXT, p_pin TEXT)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_emp RECORD;
-  v_loc RECORD;
-  v_set RECORD;
-  v_att RECORD;
-  v_today DATE := (NOW() AT TIME ZONE 'Asia/Jakarta')::date;
-BEGIN
-  SELECT * INTO v_emp FROM hris_employees
-  WHERE UPPER(TRIM(nik_karyawan)) = UPPER(TRIM(p_nik))
-    AND TRIM(pin_code) = TRIM(p_pin)
-    AND status_kerja = 'AKTIF'
-  LIMIT 1;
-
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('ok', false, 'message', 'ID Karyawan atau PIN salah, atau status tidak aktif.');
-  END IF;
-
-  SELECT * INTO v_loc FROM hris_locations WHERE id = v_emp.location_id;
-  SELECT * INTO v_set FROM hris_settings WHERE id = 1;
-  SELECT * INTO v_att FROM hris_attendance WHERE employee_id = v_emp.id AND tanggal = v_today;
-
-  RETURN jsonb_build_object(
-    'ok', true,
-    'employee', jsonb_build_object(
-      'id', v_emp.id,
-      'nik_karyawan', v_emp.nik_karyawan,
-      'nama_lengkap', v_emp.nama_lengkap,
-      'jabatan', v_emp.jabatan,
-      'kategori', v_emp.kategori
-    ),
-    'location', CASE WHEN v_loc.id IS NOT NULL THEN jsonb_build_object(
-      'nama_lokasi', v_loc.nama_lokasi,
-      'kota', v_loc.kota,
-      'latitude', v_loc.latitude,
-      'longitude', v_loc.longitude,
-      'radius_meter', v_loc.radius_meter
-    ) ELSE NULL END,
-    'settings', jsonb_build_object(
-      'company_name', v_set.company_name,
-      'app_subtitle', v_set.app_subtitle,
-      'primary_color', v_set.primary_color,
-      'drive_webhook_url', v_set.drive_webhook_url
-    ),
-    'today', CASE WHEN v_att.id IS NOT NULL THEN jsonb_build_object(
-      'jam_masuk', v_att.jam_masuk,
-      'jam_pulang', v_att.jam_pulang,
-      'status', v_att.status
-    ) ELSE NULL END
-  );
-END;
-$$;
-
--- 4. Fungsi Kirim Absen (Jam otomatis pakai waktu server WIB)
-CREATE OR REPLACE FUNCTION hris_emp_submit_attendance(
-  p_nik TEXT,
-  p_pin TEXT,
-  p_tipe TEXT,
-  p_lat DOUBLE PRECISION,
-  p_lng DOUBLE PRECISION,
-  p_jarak INT,
-  p_foto_url TEXT,
-  p_keterangan TEXT DEFAULT NULL
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_emp RECORD;
-  v_set RECORD;
-  v_now TIMESTAMPTZ := NOW();
-  v_today DATE := (v_now AT TIME ZONE 'Asia/Jakarta')::date;
-  v_time TIME := (v_now AT TIME ZONE 'Asia/Jakarta')::time;
-  v_status TEXT := 'HADIR';
-  v_att RECORD;
-BEGIN
-  SELECT * INTO v_emp FROM hris_employees
-  WHERE UPPER(TRIM(nik_karyawan)) = UPPER(TRIM(p_nik))
-    AND TRIM(pin_code) = TRIM(p_pin)
-    AND status_kerja = 'AKTIF'
-  LIMIT 1;
-
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('ok', false, 'message', 'Sesi tidak valid. Silakan login ulang.');
-  END IF;
-
-  SELECT * INTO v_set FROM hris_settings WHERE id = 1;
-
-  IF UPPER(p_tipe) = 'MASUK' THEN
-    IF EXISTS (SELECT 1 FROM hris_attendance WHERE employee_id = v_emp.id AND tanggal = v_today AND jam_masuk IS NOT NULL) THEN
-      RETURN jsonb_build_object('ok', false, 'message', 'Anda sudah absen MASUK hari ini.');
-    END IF;
-
-    IF v_time > v_set.default_check_in THEN
-      v_status := 'TERLAMBAT';
-    END IF;
-
-    INSERT INTO hris_attendance (employee_id, tanggal, jam_masuk, lat_masuk, lng_masuk, jarak_masuk_meter, foto_masuk_url, status, keterangan)
-    VALUES (v_emp.id, v_today, v_now, p_lat, p_lng, p_jarak, p_foto_url, v_status, p_keterangan)
-    RETURNING * INTO v_att;
-
-  ELSIF UPPER(p_tipe) = 'KELUAR' THEN
-    SELECT * INTO v_att FROM hris_attendance WHERE employee_id = v_emp.id AND tanggal = v_today;
-    IF NOT FOUND THEN
-      RETURN jsonb_build_object('ok', false, 'message', 'Anda belum absen MASUK hari ini.');
-    END IF;
-    IF v_att.jam_pulang IS NOT NULL THEN
-      RETURN jsonb_build_object('ok', false, 'message', 'Anda sudah absen PULANG hari ini.');
-    END IF;
-
-    UPDATE hris_attendance
-    SET jam_pulang = v_now,
-        lat_pulang = p_lat,
-        lng_pulang = p_lng,
-        jarak_pulang_meter = p_jarak,
-        foto_pulang_url = p_foto_url
-    WHERE id = v_att.id
-    RETURNING * INTO v_att;
-  END IF;
-
-  RETURN jsonb_build_object(
-    'ok', true,
-    'today', jsonb_build_object(
-      'jam_masuk', v_att.jam_masuk,
-      'jam_pulang', v_att.jam_pulang,
-      'status', v_att.status
-    )
-  );
-END;
-$$;
-
-GRANT EXECUTE ON FUNCTION hris_get_public_branding() TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION hris_emp_login(TEXT, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION hris_emp_submit_attendance(TEXT, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION, INT, TEXT, TEXT) TO anon, authenticated;
+  function downloadCSV(name, rows) {
+    var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c||'').replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); a.download = name; a.click();
+  }
+  function exportBpjsCSV() {
+    var rows = [['ID','Nama','NIK KTP','Status Kerja','No JKN','Status JKN','No KPJ','Status KPJ']];
+    hrCache.bpjs.forEach(function(b){ var e = b.hris_employees||{}; rows.push([e.nik_karyawan,e.nama_lengkap,e.nik_ktp,e.status_kerja,b.no_jkn,b.status_jkn,b.no_kpj,b.status_kpj]); });
+    downloadCSV('kontrol_bpjs_'+getTodayWIB()+'.csv', rows);
+  }
+  function exportAttendanceCSV() {
+    var tgl = document.getElementById('filter-date').value, rows = [['Tanggal','ID','Nama','Lokasi','Masuk','Pulang','Status','Foto Masuk','Foto Pulang']];
+    hrCache.attendance.forEach(function(a){ var e=a.hris_employees||{}, l=e.hris_locations?e.hris_locations.nama_lokasi:'-'; rows.push([tgl,e.nik_karyawan,e.nama_lengkap,l,formatTimeWIB(a.jam_masuk),formatTimeWIB(a.jam_pulang),a.status,a.foto_masuk_url,a.foto_pulang_url]); });
+    downloadCSV('absensi_'+tgl+'.csv', rows);
+  }
+</script>
+</body>
+</html>
