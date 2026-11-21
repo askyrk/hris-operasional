@@ -20,6 +20,7 @@
     .hidden { display: none !important; }
     button { cursor: pointer; font-family: inherit; border: none; }
     input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); font-size: 15px; }
+    input[type="checkbox"] { width: auto; }
     label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
 
     /* LOGIN */
@@ -119,6 +120,8 @@
     .b-red { background: #FEE2E2; color: #991B1B; }
     .b-gray { background: #E5E7EB; color: #374151; }
     .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .chk-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; cursor: pointer; text-transform: none; }
+    .chk-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 14px; }
     .mobile-bar { display: none; background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 16px; justify-content: space-between; align-items: center; }
 
     /* MODAL */
@@ -146,7 +149,7 @@
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 </script>
 
-<!-- 1. HALAMAN LOGIN (FOKUS KARYAWAN + PINTU ADMIN TERPISAH) -->
+<!-- 1. HALAMAN LOGIN -->
 <div id="view-login" class="login-wrap">
   <div class="login-card">
     <div class="brand-tag"><span class="brand-dot"></span> <span id="login-company">PORTAL PRESENSI</span></div>
@@ -155,7 +158,6 @@
 
     <div id="login-msg" class="alert alert-err hidden"></div>
 
-    <!-- Form Karyawan -->
     <form id="form-emp-login" onsubmit="handleEmpLogin(event)">
       <div class="form-group">
         <label>Nomor KTP (NIK)</label>
@@ -171,7 +173,6 @@
       </div>
     </form>
 
-    <!-- Form Admin / HR (Tersembunyi, muncul via link bawah atau /#admin) -->
     <form id="form-hr-login" class="hidden" onsubmit="handleHrLogin(event)">
       <div class="form-group"><label>Email Admin / HR</label><input type="email" id="hr-email" placeholder="nama@email.com" required /></div>
       <div class="form-group"><label>Password</label><input type="password" id="hr-pass" placeholder="Password akun HR" required /></div>
@@ -202,7 +203,7 @@
 
   <div id="gps-box" class="gps-box">
     <strong id="gps-title">Mencari Lokasi GPS...</strong>
-    <div id="gps-desc" style="font-size:13px; margin-top:4px;">Pastikan Lokasi/GPS HP menyala.</div>
+    <div id="gps-desc" style="font-size:13px; margin-top:4px;">Lokasi diperbarui otomatis saat Anda bergerak.</div>
     <button class="btn-gps" onclick="refreshGPS()">↻ Perbarui Titik GPS</button>
   </div>
 
@@ -222,7 +223,7 @@
 
   <div id="box-dinas-luar" class="dl-box hidden">
     <strong style="font-size:16px; display:block; margin-bottom:6px;">MENU DINAS LUAR</strong>
-    <div style="font-size:13px; margin-bottom:10px;">Presensi kantor ditolak karena Anda di luar lokasi. Isi tujuan di bawah untuk presensi Dinas Luar:</div>
+    <div style="font-size:13px; margin-bottom:10px;">Presensi kantor ditolak karena Anda di luar lokasi tugas. Isi tujuan di bawah untuk presensi Dinas Luar:</div>
     <input type="text" id="dl-ket" placeholder="Contoh: Antar berkas ke Kejari / Tugas lapangan" style="margin-bottom:12px;" />
     <button id="btn-dl-masuk" class="big-btn btn-dl" style="margin-bottom:0;" onclick="startPresensi('MASUK', true)">
       DINAS LUAR (MASUK)
@@ -358,7 +359,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Karyawan</th><th>Lokasi</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Keterangan</th><th>Foto</th></tr></thead>
+                <thead><tr><th>Karyawan</th><th>Lokasi Aktual</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Keterangan</th><th>Foto</th></tr></thead>
                 <tbody id="absen-body"></tbody>
               </table>
             </div>
@@ -375,7 +376,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>NIK KTP</th><th>Nama Karyawan</th><th>Lokasi</th><th>Hadir</th><th>Dinas Luar</th><th>Izin</th><th>Sakit</th><th>Lupa Pulang</th><th>Total Masuk</th></tr></thead>
+                <thead><tr><th>NIK KTP</th><th>Nama Karyawan</th><th>Lokasi Utama</th><th>Hadir</th><th>Dinas Luar</th><th>Izin</th><th>Sakit</th><th>Lupa Pulang</th><th>Total Masuk</th></tr></thead>
                 <tbody id="recap-body"><tr><td colspan="9">Pilih bulan untuk melihat rekap.</td></tr></tbody>
               </table>
             </div>
@@ -453,7 +454,7 @@
             <div><label>Nama Lengkap</label><input id="f-nama" placeholder="Nama sesuai KTP" required /></div>
             <div><label>Kategori</label><select id="f-kat"><option value="OS">OS</option><option value="INTERNAL">INTERNAL</option></select></div>
             <div><label>Jabatan</label><input id="f-jab" placeholder="Security / Driver / Admin" /></div>
-            <div><label>Penempatan</label><select id="f-loc"></select></div>
+            <div><label>Penempatan Utama</label><select id="f-loc"></select></div>
             <div><label>No. HP / WA</label><input id="f-hp" placeholder="08..." /></div>
             <div><label>Nama Bank</label><input id="f-bank" placeholder="BRI / Mandiri / BNI / BCA" /></div>
             <div><label>No. Rekening</label><input id="f-rek" placeholder="Nomor rekening gaji" /></div>
@@ -520,7 +521,7 @@
 </div>
 
 <script>
-  var empSession = null, currentGPS = null, lastGpsStatus = 'Mencari GPS', pendingType = null, pendingIsDL = false;
+  var empSession = null, currentGPS = null, gpsWatchId = null, lastGpsStatus = 'Mencari GPS', pendingType = null, pendingIsDL = false;
   var publicAdminWa = '';
   var hrCache = { employees: [], locations: [], bpjs: [], attendance: [], requests: [], monthlyRaw: [], monthlySummary: [] };
 
@@ -619,7 +620,16 @@
       document.getElementById('view-login').classList.add('hidden');
       document.getElementById('view-emp').classList.remove('hidden');
       document.getElementById('emp-name').textContent = d.employee.nama_lengkap;
-      document.getElementById('emp-loc-label').textContent = d.location ? ('Penempatan: ' + d.location.nama_lokasi + ' (' + d.location.kota + ')') : 'Penempatan: Belum diatur HR';
+
+      var locs = d.allowed_locations || [];
+      if (d.employee.allow_all_locations) {
+        document.getElementById('emp-loc-label').textContent = 'Penempatan: Semua Lokasi Kantor (Rolling)';
+      } else if (d.location) {
+        var extraCount = Math.max(0, locs.length - 1);
+        document.getElementById('emp-loc-label').textContent = 'Penempatan: ' + d.location.nama_lokasi + ' (' + d.location.kota + ')' + (extraCount > 0 ? ' + ' + extraCount + ' lokasi lain' : '');
+      } else {
+        document.getElementById('emp-loc-label').textContent = 'Penempatan: Belum diatur HR';
+      }
 
       var wa = formatWaNumber(d.settings && d.settings.admin_wa);
       document.getElementById('btn-wa-admin').classList.toggle('hidden', wa.length < 9);
@@ -628,7 +638,7 @@
       renderEmpHistory(d.recent_attendance || []);
       renderEmpReqHistory(d.recent_requests || []);
       startClock();
-      refreshGPS();
+      startLiveGPS();
     });
   }
 
@@ -795,32 +805,69 @@
     return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
   }
 
+  // ===== LIVE GPS OTOMATIS + DETEKSI MULTI-LOKASI + ANTI-CURANG (TANPA METER/BATAS) =====
+  function handleGpsSuccess(pos) {
+    var box = document.getElementById('gps-box'), title = document.getElementById('gps-title'), desc = document.getElementById('gps-desc');
+    var locs = (empSession && empSession.data && empSession.data.allowed_locations) ? empSession.data.allowed_locations : [];
+    if (!locs.length && empSession && empSession.data && empSession.data.location) locs = [empSession.data.location];
+
+    var matched = null, minJarak = 0, bestMatchJarak = Infinity;
+    if (locs.length) {
+      minJarak = Infinity;
+      locs.forEach(function(l) {
+        var d = calcDistance(pos.coords.latitude, pos.coords.longitude, l.latitude, l.longitude);
+        if (d < minJarak) minJarak = d;
+        if (d <= l.radius_meter && d < bestMatchJarak) {
+          bestMatchJarak = d;
+          matched = l;
+        }
+      });
+    }
+
+    var inRad = !locs.length || !!matched;
+    var finalJarak = matched ? bestMatchJarak : (minJarak === Infinity ? 0 : minJarak);
+    currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, jarak: finalJarak, inRadius: inRad, matchedLoc: matched };
+
+    if (inRad) {
+      lastGpsStatus = matched ? ('Di dalam area ' + matched.nama_lokasi) : 'GPS aktif';
+      box.className = 'gps-box gps-ok';
+      title.textContent = 'Di Dalam Area Tugas (Siap Presensi)';
+      desc.textContent = matched ? ('Lokasi terverifikasi: ' + matched.nama_lokasi + ' (' + matched.kota + ')') : 'Lokasi GPS terverifikasi.';
+    } else {
+      lastGpsStatus = 'Di luar area tugas';
+      box.className = 'gps-box gps-err';
+      title.textContent = 'Di Luar Area Tugas';
+      desc.textContent = 'Presensi kantor tidak tersedia. Gunakan MENU DINAS LUAR di bawah.';
+    }
+    updateEmpButtons();
+  }
+
+  function handleGpsError() {
+    var box = document.getElementById('gps-box'), title = document.getElementById('gps-title'), desc = document.getElementById('gps-desc');
+    currentGPS = null;
+    lastGpsStatus = 'GPS gagal terbaca / belum diizinkan';
+    box.className = 'gps-box gps-err';
+    title.textContent = 'GPS Gagal Terbaca';
+    desc.textContent = 'Nyalakan GPS HP dan izinkan browser mengakses lokasi, lalu tekan tombol di bawah.';
+    updateEmpButtons();
+  }
+
+  function startLiveGPS() {
+    if (!navigator.geolocation) { handleGpsError(); return; }
+    if (gpsWatchId !== null) return;
+    gpsWatchId = navigator.geolocation.watchPosition(handleGpsSuccess, handleGpsError, {
+      enableHighAccuracy: true, maximumAge: 5000, timeout: 15000
+    });
+  }
+
   function refreshGPS() {
     var box = document.getElementById('gps-box'), title = document.getElementById('gps-title'), desc = document.getElementById('gps-desc');
+    if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
     currentGPS = null;
     lastGpsStatus = 'Sedang mencari GPS';
     box.className = 'gps-box'; title.textContent = 'Mencari titik GPS...'; desc.textContent = 'Mohon tunggu sebentar.';
     updateEmpButtons();
-
-    if (!navigator.geolocation) {
-      lastGpsStatus = 'Browser tidak mendukung GPS';
-      box.className = 'gps-box gps-err'; title.textContent = 'HP tidak mendukung GPS'; return;
-    }
-    navigator.geolocation.getCurrentPosition(function(pos) {
-      var loc = empSession.data.location;
-      var jarak = loc ? calcDistance(pos.coords.latitude, pos.coords.longitude, loc.latitude, loc.longitude) : 0;
-      var inRad = !loc || jarak <= loc.radius_meter;
-      currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, jarak: jarak, inRadius: inRad };
-      lastGpsStatus = inRad ? ('Di dalam area (' + jarak + ' meter)') : ('Di luar area (' + jarak + ' meter)');
-      box.className = 'gps-box ' + (inRad ? 'gps-ok' : 'gps-err');
-      title.textContent = inRad ? 'Di Dalam Area Kantor (Siap Presensi)' : ('Di Luar Area Kantor (' + jarak + ' meter)');
-      desc.textContent = loc ? (inRad ? ('Jarak: ' + jarak + ' m (batas ' + loc.radius_meter + ' m)') : 'Presensi normal ditolak. Gunakan MENU DINAS LUAR di bawah.') : 'GPS aktif.';
-      updateEmpButtons();
-    }, function() {
-      lastGpsStatus = 'GPS gagal terbaca / belum diizinkan';
-      box.className = 'gps-box gps-err'; title.textContent = 'GPS Gagal Terbaca'; desc.textContent = 'Nyalakan GPS HP dan izinkan browser mengakses lokasi, lalu tekan tombol di bawah.';
-      updateEmpButtons();
-    }, { enableHighAccuracy: true, timeout: 15000 });
+    startLiveGPS();
   }
 
   function showEmpMsg(msg, ok) {
@@ -831,7 +878,7 @@
   function startPresensi(tipe, isDinasLuar) {
     document.getElementById('emp-msg').classList.add('hidden');
     if (!currentGPS) { showEmpMsg('Aktifkan GPS di atas terlebih dahulu.', false); return; }
-    if (!isDinasLuar && !currentGPS.inRadius) { showEmpMsg('DITOLAK: Di luar lokasi. Wajib pakai DINAS LUAR.', false); updateEmpButtons(); return; }
+    if (!isDinasLuar && !currentGPS.inRadius) { showEmpMsg('DITOLAK: Di luar lokasi tugas. Wajib pakai DINAS LUAR.', false); updateEmpButtons(); return; }
     if (isDinasLuar && !document.getElementById('dl-ket').value.trim()) { showEmpMsg('Isi tujuan Dinas Luar dulu.', false); return; }
     pendingType = tipe; pendingIsDL = isDinasLuar;
     var inp = document.getElementById('camera-input'); inp.value = ''; inp.click();
@@ -871,13 +918,16 @@
     ['btn-masuk','btn-pulang','btn-dl-masuk','btn-dl-pulang'].forEach(function(id){ document.getElementById(id).disabled = true; });
     compressImage(file, function(base64) {
       var webhook = empSession.data.settings ? empSession.data.settings.drive_webhook_url : '';
-      var locName = pendingIsDL ? 'DINAS_LUAR' : (empSession.data.location ? empSession.data.location.nama_lokasi : 'Tanpa_Lokasi');
+      var actualLoc = currentGPS.matchedLoc || empSession.data.location;
+      var locName = pendingIsDL ? 'DINAS_LUAR' : (actualLoc ? actualLoc.nama_lokasi : 'Tanpa_Lokasi');
       var ket = pendingIsDL ? ('[DINAS LUAR] ' + document.getElementById('dl-ket').value.trim()) : '';
+
       function saveDb(fotoUrl) {
         sb.rpc('hris_emp_submit_attendance', {
           p_nik: empSession.nik, p_pin: empSession.pin, p_tipe: pendingType,
           p_lat: currentGPS.lat, p_lng: currentGPS.lng, p_jarak: currentGPS.jarak,
-          p_foto_url: fotoUrl, p_keterangan: ket
+          p_foto_url: fotoUrl, p_keterangan: ket,
+          p_location_id: (!pendingIsDL && currentGPS.matchedLoc) ? currentGPS.matchedLoc.id : null
         }).then(function(res) {
           var d = res.data;
           if (res.error || !d || !d.ok) { showEmpMsg(d && d.message ? d.message : 'Gagal simpan presensi', false); updateEmpButtons(); return; }
@@ -894,6 +944,7 @@
 
   function logoutEmp() {
     if (!confirm('Yakin keluar akun? Nanti Anda harus memasukkan NIK KTP & PIN lagi untuk masuk.')) return;
+    if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
     localStorage.removeItem('hris_emp_cred');
     location.reload();
   }
@@ -974,7 +1025,7 @@
 
   function loadAttendance() {
     var tgl = document.getElementById('filter-date').value || getTodayWIB();
-    sb.from('hris_attendance').select('*, hris_employees(nik_karyawan, nama_lengkap, location_id, hris_locations(nama_lokasi))').eq('tanggal', tgl).order('created_at', { ascending: false }).then(function(res) {
+    sb.from('hris_attendance').select('*, hris_locations(nama_lokasi), hris_employees(nik_karyawan, nama_lengkap, location_id, hris_locations(nama_lokasi))').eq('tanggal', tgl).order('created_at', { ascending: false }).then(function(res) {
       hrCache.attendance = res.data || [];
       if (tgl === getTodayWIB()) document.getElementById('k-hadir').textContent = hrCache.attendance.length;
       renderAttendanceTable();
@@ -983,11 +1034,16 @@
 
   function renderAttendanceTable() {
     var locId = document.getElementById('filter-pres-loc').value;
-    var rows = hrCache.attendance.filter(function(a){ return !locId || (a.hris_employees && a.hris_employees.location_id === locId); });
+    var rows = hrCache.attendance.filter(function(a){
+      var actualLocId = a.location_id || (a.hris_employees && a.hris_employees.location_id);
+      return !locId || actualLocId === locId;
+    });
     var html = '';
     rows.forEach(function(a) {
       var emp = a.hris_employees || {};
-      var loc = (emp.hris_locations && emp.hris_locations.nama_lokasi) ? emp.hris_locations.nama_lokasi : '-';
+      var loc = (a.hris_locations && a.hris_locations.nama_lokasi)
+        ? a.hris_locations.nama_lokasi
+        : ((emp.hris_locations && emp.hris_locations.nama_lokasi) ? emp.hris_locations.nama_lokasi : '-');
       var st = (a.status === 'TERLAMBAT') ? 'HADIR' : a.status;
       var foto = (a.foto_masuk_url ? '<a href="'+a.foto_masuk_url+'" target="_blank" style="color:var(--primary);margin-right:8px;">' + (st==='IZIN'||st==='SAKIT'?'Bukti':'Masuk') + '</a>' : '') + (a.foto_pulang_url ? '<a href="'+a.foto_pulang_url+'" target="_blank" style="color:var(--blue);">Pulang</a>' : '');
       html += '<tr><td><strong>' + esc(emp.nama_lengkap||'-') + '</strong></td><td>' + esc(loc) + '</td><td>' + formatTimeWIB(a.jam_masuk) + '</td><td>' + formatPulangCell(a) + '</td><td>' + badgeStatus(st) + '</td><td>' + esc(a.keterangan || '-') + '</td><td>' + (foto||'-') + '</td></tr>';
@@ -1043,10 +1099,12 @@
       var match = !q || (e.nama_lengkap || '').toLowerCase().indexOf(q) !== -1 || (e.nik_ktp || '').indexOf(q) !== -1 || (e.no_hp || '').indexOf(q) !== -1;
       if (!match) return;
       var loc = e.hris_locations ? (e.hris_locations.nama_lokasi + ' (' + e.hris_locations.kota + ')') : '-';
+      if (e.allow_all_locations) loc += ' <span class="badge b-blue">SEMUA LOKASI</span>';
+      else if (e.extra_location_ids && e.extra_location_ids.length) loc += ' <span class="badge b-orange">+' + e.extra_location_ids.length + ' lokasi</span>';
       var bankInfo = (e.nama_bank || e.no_rekening) ? (esc(e.nama_bank||'-') + '<br><small style="color:var(--muted)">' + esc(e.no_rekening||'-') + '</small>') : '-';
       html += '<tr><td><strong>' + esc(e.nik_ktp || e.nik_karyawan) + '</strong></td>' +
         '<td><strong>' + esc(e.nama_lengkap) + '</strong><br><small style="color:var(--muted)">' + esc(e.kategori) + (e.jabatan ? ' • ' + esc(e.jabatan) : '') + '</small></td>' +
-        '<td>' + esc(loc) + '</td><td>' + esc(e.no_hp || '-') + '</td><td>' + bankInfo + '</td>' +
+        '<td>' + loc + '</td><td>' + esc(e.no_hp || '-') + '</td><td>' + bankInfo + '</td>' +
         '<td><span class="badge ' + (e.status_kerja==='AKTIF'?'b-green':'b-red') + '">' + e.status_kerja + '</span></td>' +
         '<td><button class="btn-outline" onclick="openEmpModal(\'' + e.id + '\')">Detail / Edit</button></td></tr>';
     });
@@ -1057,11 +1115,17 @@
   function openEmpModal(empId) {
     var e = hrCache.employees.find(function(x){ return x.id === empId; });
     if (!e) return;
+    var extraArr = e.extra_location_ids || [];
     var locOpts = '<option value="">-- Belum Diatur --</option>' + hrCache.locations.map(function(l){
       return '<option value="' + l.id + '" ' + (e.location_id===l.id?'selected':'') + '>' + esc(l.nama_lokasi) + ' (' + esc(l.kota) + ')</option>';
     }).join('');
+    var extraChks = hrCache.locations.map(function(l){
+      var checked = extraArr.indexOf(l.id) !== -1 ? 'checked' : '';
+      return '<label class="chk-row"><input type="checkbox" class="me-extra-loc" value="' + l.id + '" ' + checked + ' /> ' + esc(l.nama_lokasi) + ' (' + esc(l.kota) + ')</label>';
+    }).join('');
+
     openModal(
-      '<div class="modal-head"><h3>Biodata Karyawan</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
+      '<div class="modal-head"><h3>Biodata & Multi-Lokasi Karyawan</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
       '<form onsubmit="saveEmpModal(event,\'' + e.id + '\')">' +
       '<div class="grid-2">' +
         '<div class="form-group"><label>NIK KTP (Login)</label><input id="me-ktp" value="' + esc(e.nik_ktp||'') + '" required /></div>' +
@@ -1070,7 +1134,7 @@
         '<div class="form-group"><label>No. HP / WA</label><input id="me-hp" value="' + esc(e.no_hp||'') + '" /></div>' +
         '<div class="form-group"><label>Kategori</label><select id="me-kat"><option value="OS" ' + (e.kategori==='OS'?'selected':'') + '>OS</option><option value="INTERNAL" ' + (e.kategori==='INTERNAL'?'selected':'') + '>INTERNAL</option></select></div>' +
         '<div class="form-group"><label>Jabatan</label><input id="me-jab" value="' + esc(e.jabatan||'') + '" /></div>' +
-        '<div class="form-group"><label>Penempatan</label><select id="me-loc">' + locOpts + '</select></div>' +
+        '<div class="form-group"><label>Penempatan Utama</label><select id="me-loc">' + locOpts + '</select></div>' +
         '<div class="form-group"><label>Tanggal Masuk</label><input type="date" id="me-masuk" value="' + esc(e.tanggal_masuk||'') + '" /></div>' +
         '<div class="form-group"><label>Nama Bank</label><input id="me-bank" value="' + esc(e.nama_bank||'') + '" placeholder="BRI / Mandiri / BNI" /></div>' +
         '<div class="form-group"><label>No. Rekening</label><input id="me-rek" value="' + esc(e.no_rekening||'') + '" /></div>' +
@@ -1078,6 +1142,12 @@
         '<div class="form-group"><label>Status Kerja</label><select id="me-st"><option value="AKTIF" ' + (e.status_kerja==='AKTIF'?'selected':'') + '>AKTIF</option><option value="RESIGN" ' + (e.status_kerja==='RESIGN'?'selected':'') + '>RESIGN</option><option value="HABIS_KONTRAK" ' + (e.status_kerja==='HABIS_KONTRAK'?'selected':'') + '>HABIS_KONTRAK</option></select></div>' +
       '</div>' +
       '<div class="form-group"><label>Alamat Lengkap</label><input id="me-alamat" value="' + esc(e.alamat||'') + '" /></div>' +
+      '<div class="chk-box">' +
+        '<label style="margin-bottom:8px;">Akses Multi-Lokasi (Untuk Pekerja Rolling / Pindah-Pindah)</label>' +
+        '<label class="chk-row" style="color:var(--blue);"><input type="checkbox" id="me-all-loc" ' + (e.allow_all_locations?'checked':'') + ' /> Boleh presensi di SEMUA lokasi kantor</label>' +
+        '<div style="font-size:11px;color:var(--muted);margin:8px 0 6px;">Atau pilih lokasi tambahan tertentu:</div>' +
+        '<div style="max-height:130px;overflow-y:auto;">' + (extraChks || '<small>Belum ada lokasi.</small>') + '</div>' +
+      '</div>' +
       '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">' +
         '<button type="button" class="btn-outline" onclick="resetEmpPin(\'' + e.id + '\',\'' + esc(e.nik_ktp||e.nik_karyawan) + '\')">↻ Reset PIN ke 6 Digit Akhir NIK</button>' +
         '<button type="submit" class="btn-dark">Simpan Perubahan</button>' +
@@ -1088,6 +1158,12 @@
   function saveEmpModal(ev, id) {
     ev.preventDefault();
     var stBaru = document.getElementById('me-st').value;
+    var mainLoc = document.getElementById('me-loc').value || null;
+    var extraIds = [];
+    document.querySelectorAll('.me-extra-loc:checked').forEach(function(cb){
+      if (cb.value && cb.value !== mainLoc) extraIds.push(cb.value);
+    });
+
     var payload = {
       nik_ktp: document.getElementById('me-ktp').value.replace(/\D/g, ''),
       no_kk: document.getElementById('me-kk').value.trim(),
@@ -1095,7 +1171,9 @@
       no_hp: document.getElementById('me-hp').value.trim(),
       kategori: document.getElementById('me-kat').value,
       jabatan: document.getElementById('me-jab').value.trim(),
-      location_id: document.getElementById('me-loc').value || null,
+      location_id: mainLoc,
+      allow_all_locations: document.getElementById('me-all-loc').checked,
+      extra_location_ids: extraIds,
       tanggal_masuk: document.getElementById('me-masuk').value || null,
       nama_bank: document.getElementById('me-bank').value.trim(),
       no_rekening: document.getElementById('me-rek').value.trim(),
@@ -1361,16 +1439,16 @@
   }
   function exportAttendanceCSV() {
     var tgl = document.getElementById('filter-date').value, locId = document.getElementById('filter-pres-loc').value;
-    var rows = [['Tanggal','NIK','Nama','Lokasi','Masuk','Pulang','Status','Keterangan','Foto Masuk','Foto Pulang']];
-    hrCache.attendance.filter(function(a){ return !locId || (a.hris_employees && a.hris_employees.location_id === locId); }).forEach(function(a){
-      var e=a.hris_employees||{}, l=e.hris_locations?e.hris_locations.nama_lokasi:'-';
+    var rows = [['Tanggal','NIK','Nama','Lokasi Aktual','Masuk','Pulang','Status','Keterangan','Foto Masuk','Foto Pulang']];
+    hrCache.attendance.filter(function(a){ var al = a.location_id || (a.hris_employees && a.hris_employees.location_id); return !locId || al === locId; }).forEach(function(a){
+      var e=a.hris_employees||{}, l=(a.hris_locations&&a.hris_locations.nama_lokasi)?a.hris_locations.nama_lokasi:(e.hris_locations?e.hris_locations.nama_lokasi:'-');
       rows.push([tgl,e.nik_karyawan,e.nama_lengkap,l,formatTimeWIB(a.jam_masuk),formatTimeWIB(a.jam_pulang),a.status==='TERLAMBAT'?'HADIR':a.status,a.keterangan||'',a.foto_masuk_url,a.foto_pulang_url]);
     });
     downloadCSV('presensi_harian_'+tgl+'.csv', rows);
   }
   function exportMonthlyCSV() {
     var ym = document.getElementById('filter-month').value;
-    var rows = [['Bulan','NIK KTP','Nama Karyawan','Lokasi','Hadir','Dinas Luar','Izin','Sakit','Lupa Pulang','Total Masuk']];
+    var rows = [['Bulan','NIK KTP','Nama Karyawan','Lokasi Utama','Hadir','Dinas Luar','Izin','Sakit','Lupa Pulang','Total Masuk']];
     hrCache.monthlySummary.forEach(function(r){ rows.push([ym,r.nik,r.nama,r.loc,r.hadir,r.dl,r.izin,r.sakit,r.lupa,r.total]); });
     downloadCSV('rekap_presensi_'+ym+'.csv', rows);
   }
@@ -1380,7 +1458,7 @@
     downloadCSV('kontrol_bpjs_'+getTodayWIB()+'.csv', rows);
   }
   function exportMasterEmpCSV() {
-    var rows = [['NIK KTP','No KK','Nama Lengkap','Kategori','Jabatan','Penempatan','No HP','Alamat','Nama Bank','No Rekening','Tgl Masuk','Status Kerja']];
+    var rows = [['NIK KTP','No KK','Nama Lengkap','Kategori','Jabatan','Penempatan Utama','No HP','Alamat','Nama Bank','No Rekening','Tgl Masuk','Status Kerja']];
     hrCache.employees.forEach(function(e){ var l=e.hris_locations?e.hris_locations.nama_lokasi:'-'; rows.push([e.nik_ktp,e.no_kk,e.nama_lengkap,e.kategori,e.jabatan,l,e.no_hp,e.alamat,e.nama_bank,e.no_rekening,e.tanggal_masuk,e.status_kerja]); });
     downloadCSV('master_karyawan_'+getTodayWIB()+'.csv', rows);
   }
