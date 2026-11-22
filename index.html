@@ -549,7 +549,7 @@
     <div>
       <div class="brand-tag"><span class="brand-dot"></span> VEROPSA CONTROL PLANE</div>
       <div style="font-size:26px; font-weight:900; margin-top:4px;">Manajemen Klien & Lisensi Modul</div>
-      <div style="font-size:13px; color:var(--muted); margin-top:2px;">Kontrol branding, subdomain, status aktif, dan toggle fitur lintas modul (tanpa akses data operasional klien).</div>
+      <div style="font-size:13px; color:var(--muted); margin-top:2px;">Kontrol branding, subdomain, integrasi, status aktif, dan toggle fitur lintas modul (tanpa akses data operasional klien).</div>
     </div>
     <div class="toolbar">
       <button class="btn-dark" onclick="openAddCompanyModal()">+ Tambah Klien Baru</button>
@@ -613,11 +613,15 @@
       group: 'Veropsa Supply (Inventory & Pengadaan)',
       items: [
         { key: 'supply_enabled', label: 'Akses Utama Veropsa Supply', desc: 'Aktifkan portal manajemen stok & operasional' },
+        { key: 'supply_kartu_stok', label: 'Kartu Stok & Arsip Nota', desc: 'Mutasi barang per item, galeri foto nota & export CSV' },
+        { key: 'supply_rekap_divisi', label: 'Rekap Divisi & Supplier', desc: 'Rekap belanja supplier & pemakaian per divisi/proyek' },
         { key: 'supply_stock_opname', label: 'Stock Opname', desc: 'Rekonsiliasi stok fisik berkala (cycle count)' },
         { key: 'supply_piutang', label: 'Kontrol Piutang / Tagihan', desc: 'Rekap cicilan & pelunasan invoice instansi' },
         { key: 'supply_analisa_harga', label: 'Analisa Harga', desc: 'Perbandingan harga beli & riwayat supplier' },
         { key: 'supply_harga_laba', label: 'Kalkulasi Harga & Laba', desc: 'Margin keuntungan & laporan profitabilitas' },
-        { key: 'supply_katalog_publik', label: 'Katalog Harga Publik', desc: 'Halaman daftar harga tanpa login (?c=slug)' }
+        { key: 'supply_multi_unit', label: 'Konversi Multi-Satuan', desc: 'Satuan besar seperti BOX/SLOP/PACK otomatis konversi ke satuan dasar' },
+        { key: 'supply_gdrive_archive', label: 'Arsip Nota Google Drive', desc: 'Upload foto nota otomatis ke Google Drive klien' },
+        { key: 'supply_katalog_publik', label: 'Katalog Harga Publik', desc: 'Halaman daftar harga tanpa login (katalog.html?c=slug)' }
       ]
     },
     {
@@ -1907,6 +1911,7 @@
 
       var peopleLink = dom.people ? ('https://' + dom.people) : (PORTAL_PEOPLE_URL + '/?c=' + c.slug);
       var supplyLink = dom.supply ? ('https://' + dom.supply) : (PORTAL_SUPPLY_URL + '/?c=' + c.slug);
+      var katalogLink = dom.supply ? ('https://' + dom.supply + '/katalog.html') : (PORTAL_SUPPLY_URL + '/katalog.html?c=' + c.slug);
       var activeFlagsCount = Object.keys(f).filter(function(k){ return f[k] === true; }).length;
 
       html += '<div class="sa-card">' +
@@ -1933,12 +1938,13 @@
         '</div>' +
         '<div>' +
           '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">' +
-            '<button class="btn-outline" style="flex:1;" onclick="copyPortalLink(\'' + esc(peopleLink) + '\')">Salin Link People</button>' +
-            '<button class="btn-outline" style="flex:1;" onclick="copyPortalLink(\'' + esc(supplyLink) + '\')">Salin Link Supply</button>' +
+            '<button class="btn-outline" style="flex:1;" onclick="copyPortalLink(\'' + esc(peopleLink) + '\')">Salin People</button>' +
+            '<button class="btn-outline" style="flex:1;" onclick="copyPortalLink(\'' + esc(supplyLink) + '\')">Salin Supply</button>' +
+            (f.supply_katalog_publik ? '<button class="btn-outline" style="flex:1;" onclick="copyPortalLink(\'' + esc(katalogLink) + '\')">Salin Katalog</button>' : '') +
           '</div>' +
           '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
             '<button class="btn-dark" style="flex:1;" onclick="openSaCompanyModal(\'' + c.id + '\', \'features\')">Toggle Fitur</button>' +
-            '<button class="btn-outline" onclick="openSaCompanyModal(\'' + c.id + '\', \'branding\')">Branding</button>' +
+            '<button class="btn-outline" onclick="openSaCompanyModal(\'' + c.id + '\', \'branding\')">Branding & Integrasi</button>' +
             '<button class="btn-outline" onclick="openSaAdminsModal(\'' + c.id + '\')">Admin</button>' +
           '</div>' +
         '</div>' +
@@ -1987,8 +1993,10 @@
       people_presensi: usePeople, people_rekap_bulanan: usePeople, people_pengajuan: usePeople,
       people_bpjs: usePeople, people_face_rec: usePeople, people_multi_lokasi: usePeople,
       people_dinas_luar: usePeople, people_watermark_foto: usePeople, people_import_csv: usePeople,
-      supply_enabled: useSupply, supply_stock_opname: useSupply, supply_piutang: useSupply,
-      supply_analisa_harga: useSupply, supply_harga_laba: useSupply, supply_katalog_publik: useSupply,
+      supply_enabled: useSupply, supply_kartu_stok: useSupply, supply_rekap_divisi: useSupply,
+      supply_stock_opname: useSupply, supply_piutang: useSupply, supply_analisa_harga: useSupply,
+      supply_harga_laba: useSupply, supply_multi_unit: useSupply, supply_gdrive_archive: useSupply,
+      supply_katalog_publik: useSupply,
       custom_whitelabel: useWL
     };
     var domains = {};
@@ -2020,7 +2028,7 @@
   function openSaCompanyModal(compId, mode) {
     var c = saCompanies.find(function(x){ return x.id === compId; });
     if (!c) return;
-    var b = c.branding || {}, f = c.features || {}, dom = c.domains || {};
+    var b = c.branding || {}, f = c.features || {}, dom = c.domains || {}, integ = c.integrations || {};
 
     if (mode === 'features') {
       var groupsHtml = '';
@@ -2038,13 +2046,15 @@
         groupsHtml += '<div class="sa-flag-group"><div class="sa-flag-title">' + esc(g.group) + '</div>' + rows + '</div>';
       });
 
-      // Tampilkan custom flags tambahan (custom_*) yang sudah ada di JSONB
       var extraCustomRows = '';
       Object.keys(f).forEach(function(k) {
         if (!knownKeys[k]) {
           extraCustomRows += '<div class="toggle-row">' +
             '<div class="toggle-info"><strong>' + esc(k) + '</strong><small>Custom flag perilaku klien</small></div>' +
-            '<label class="switch"><input type="checkbox" ' + (f[k]===true?'checked':'') + ' onchange="toggleSaFeature(\'' + c.id + '\',\'' + esc(k) + '\',this.checked)" /><span class="slider"></span></label>' +
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+              '<label class="switch"><input type="checkbox" ' + (f[k]===true?'checked':'') + ' onchange="toggleSaFeature(\'' + c.id + '\',\'' + esc(k) + '\',this.checked)" /><span class="slider"></span></label>' +
+              '<button type="button" class="btn-no" style="padding:4px 8px;" title="Hapus flag ini" onclick="deleteSaFeature(\'' + c.id + '\',\'' + esc(k) + '\')">✕</button>' +
+            '</div>' +
           '</div>';
         }
       });
@@ -2064,7 +2074,7 @@
       );
     } else {
       openModal(
-        '<div class="modal-head"><h3>Branding & Domain — ' + esc(c.slug) + '</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
+        '<div class="modal-head"><h3>Branding, Domain & Integrasi — ' + esc(c.slug) + '</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
         '<form onsubmit="saveSaBranding(event,\'' + c.id + '\')">' +
           '<div class="grid-2">' +
             '<div class="form-group"><label>Nama Perusahaan</label><input id="sb-name" value="' + esc(b.company_name||'') + '" required /></div>' +
@@ -2075,6 +2085,11 @@
             '<div class="form-group"><label>Subdomain Veropsa Supply</label><input id="sb-dom-s" value="' + esc(dom.supply||'') + '" placeholder="supply-klien.veropsa.com" /></div>' +
           '</div>' +
           '<div class="form-group"><label>URL Logo Perusahaan</label><input id="sb-logo" value="' + esc(b.logo_url||'') + '" placeholder="https://.../logo.png" /></div>' +
+          '<div class="sa-flag-group" style="margin-top:14px;">' +
+            '<div class="sa-flag-title">Integrasi Google Drive — Veropsa Supply (Arsip Nota)</div>' +
+            '<div class="form-group"><label>Webhook Apps Script (supply_drive_webhook)</label><input id="sb-sup-drv" value="' + esc(integ.supply_drive_webhook||'') + '" placeholder="https://script.google.com/macros/s/.../exec" /></div>' +
+            '<div class="form-group" style="margin-bottom:0;"><label>Drive Secret (supply_drive_secret)</label><input id="sb-sup-sec" value="' + esc(integ.supply_drive_secret||'') + '" placeholder="Kunci rahasia Apps Script klien" /></div>' +
+          '</div>' +
           '<button type="submit" class="btn-primary">Simpan Perubahan</button>' +
         '</form>'
       );
@@ -2090,6 +2105,20 @@
       if (r.error) { alert('Gagal update: ' + r.error.message); loadSuperAdminData(); return; }
       c.features = nextFeatures;
       renderSuperAdminGrid();
+    });
+  }
+
+  function deleteSaFeature(compId, key) {
+    if (!confirm('Hapus flag "' + key + '" secara permanen dari perusahaan ini?')) return;
+    var c = saCompanies.find(function(x){ return x.id === compId; });
+    if (!c) return;
+    var nextFeatures = Object.assign({}, c.features || {});
+    delete nextFeatures[key];
+    sb.from('companies').update({ features: nextFeatures, updated_at: new Date().toISOString() }).eq('id', compId).then(function(r) {
+      if (r.error) { alert('Gagal menghapus flag: ' + r.error.message); return; }
+      c.features = nextFeatures;
+      renderSuperAdminGrid();
+      openSaCompanyModal(compId, 'features');
     });
   }
 
@@ -2142,11 +2171,21 @@
     if (dp) nextDomains.people = dp; else delete nextDomains.people;
     if (ds) nextDomains.supply = ds; else delete nextDomains.supply;
 
+    var nextIntegrations = Object.assign({}, c.integrations || {}, {
+      supply_drive_webhook: document.getElementById('sb-sup-drv').value.trim(),
+      supply_drive_secret: document.getElementById('sb-sup-sec').value.trim()
+    });
+
     sb.from('companies').update({
-      branding: nextBranding, domains: nextDomains, updated_at: new Date().toISOString()
+      branding: nextBranding,
+      domains: nextDomains,
+      integrations: nextIntegrations,
+      updated_at: new Date().toISOString()
     }).eq('id', compId).then(function(r) {
       if (r.error) { alert(r.error.message); return; }
-      c.branding = nextBranding; c.domains = nextDomains;
+      c.branding = nextBranding;
+      c.domains = nextDomains;
+      c.integrations = nextIntegrations;
       closeModal();
       renderSuperAdminGrid();
     });
