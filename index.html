@@ -96,9 +96,6 @@
     .nav-item.active { background: #111827; color: #FFFFFF; }
     body.dark .nav-item.active { background: var(--primary); color: #FFFFFF; }
     .nav-badge { background: var(--red); color: #FFF; font-size: 11px; padding: 2px 7px; border-radius: 99px; font-weight: 800; }
-    .tenant-switcher { margin-bottom: 12px; padding: 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); }
-    .tenant-switcher label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; color: var(--primary); }
-    .tenant-switcher select { padding: 7px 8px; font-size: 12px; font-weight: 700; }
     .main { flex: 1; padding: 24px 28px; overflow-x: auto; }
     .page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
     .page-kicker { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
@@ -128,9 +125,27 @@
     .chk-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 14px; }
     .mobile-bar { display: none; background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 16px; justify-content: space-between; align-items: center; }
 
+    /* PANEL SUPER ADMIN (CONTROL PLANE) */
+    .sa-wrap { max-width: 1120px; margin: 0 auto; padding: 26px 20px 60px; }
+    .sa-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-bottom: 18px; margin-bottom: 22px; border-bottom: 2px solid var(--border); }
+    .sa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+    .sa-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between; }
+    .sa-flag-group { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; background: var(--bg); }
+    .sa-flag-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 10px; }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-info strong { font-size: 13px; display: block; }
+    .toggle-info small { font-size: 11px; color: var(--muted); }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; margin: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: #CBD5E1; border-radius: 99px; transition: 0.2s; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #FFF; border-radius: 50%; transition: 0.2s; }
+    .switch input:checked + .slider { background: var(--green); }
+    .switch input:checked + .slider:before { transform: translateX(20px); }
+
     /* MODAL */
     .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 100; }
-    .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; padding: 22px; }
+    .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; padding: 22px; }
     .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 
     @media (max-width: 820px) {
@@ -148,6 +163,11 @@
   // ===== GANTI 2 BARIS DI BAWAH INI DENGAN KUNCI SUPABASE KAMU =====
   var SUPABASE_URL = 'https://mqtirqxmballmerllifu.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xdGlycXhtYmFsbG1lcmxsaWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUwNTYzMTUsImV4cCI6MjExMDYzMjMxNX0.T4kVEg2SNpLWB19CEv9FYFgbVkvZl806834AUXn9YZw';
+
+  // ===== KODE HASH RAHASIA PANEL KONTROL VEROPSA (BEBAS GANTI SENDIRI) =====
+  var SUPERADMIN_HASH = '#vrp-ctrl-88';
+  var PORTAL_PEOPLE_URL = 'https://hris-operasional.vercel.app';
+  var PORTAL_SUPPLY_URL = 'https://manajemen-atk.vercel.app';
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 </script>
@@ -178,9 +198,9 @@
     </form>
 
     <form id="form-hr-login" class="hidden" onsubmit="handleHrLogin(event)">
-      <div class="form-group"><label>Email Admin / HR</label><input type="email" id="hr-email" placeholder="nama@email.com" required /></div>
-      <div class="form-group"><label>Password</label><input type="password" id="hr-pass" placeholder="Password akun HR" required /></div>
-      <button type="submit" id="btn-hr-login" class="btn-primary">MASUK DASHBOARD HR</button>
+      <div class="form-group"><label>Email Admin</label><input type="email" id="hr-email" placeholder="nama@email.com" required /></div>
+      <div class="form-group"><label>Password</label><input type="password" id="hr-pass" placeholder="Password akun" required /></div>
+      <button type="submit" id="btn-hr-login" class="btn-primary">MASUK</button>
     </form>
   </div>
 
@@ -294,7 +314,7 @@
   </button>
 </div>
 
-<!-- 3. DASHBOARD HR -->
+<!-- 3. DASHBOARD HR (DATA PLANE — KHUSUS PERUSAHAAN SENDIRI) -->
 <div id="view-hr" class="hidden">
   <div class="mobile-bar">
     <strong id="hr-mobile-title">VEROPSA PEOPLE</strong>
@@ -304,11 +324,6 @@
   <div class="hr-layout">
     <aside id="hr-sidebar" class="sidebar">
       <div>
-        <div id="tenant-switcher" class="tenant-switcher hidden">
-          <label>Super Admin — Pilih Klien</label>
-          <select id="tenant-select" onchange="switchActiveTenant(this.value)"></select>
-        </div>
-
         <img id="hr-logo" class="brand-logo hidden" alt="Logo" />
         <div class="brand-tag"><span class="brand-dot"></span> <span id="hr-brand-kicker">VEROPSA PEOPLE</span></div>
         <div id="hr-company" style="font-size:17px; font-weight:900; margin-top:6px;">-</div>
@@ -528,6 +543,32 @@
   </div>
 </div>
 
+<!-- 4. PANEL SUPER ADMIN VEROPSA (CONTROL PLANE — ZERO DATA KLIEN) -->
+<div id="view-sa" class="sa-wrap hidden">
+  <div class="sa-top">
+    <div>
+      <div class="brand-tag"><span class="brand-dot"></span> VEROPSA CONTROL PLANE</div>
+      <div style="font-size:26px; font-weight:900; margin-top:4px;">Manajemen Klien & Lisensi Modul</div>
+      <div style="font-size:13px; color:var(--muted); margin-top:2px;">Kontrol branding, subdomain, status aktif, dan toggle fitur lintas modul (tanpa akses data operasional klien).</div>
+    </div>
+    <div class="toolbar">
+      <button class="btn-dark" onclick="openAddCompanyModal()">+ Tambah Klien Baru</button>
+      <button class="btn-outline" onclick="loadSuperAdminData()">Muat Ulang</button>
+      <button class="btn-outline" onclick="toggleDark()">Tema</button>
+      <button class="btn-outline" onclick="logoutHr()">Keluar</button>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="card"><div class="kpi-label">Total Klien</div><div id="sa-k-total" class="kpi-val">0</div></div>
+    <div class="card"><div class="kpi-label">Klien Aktif</div><div id="sa-k-active" class="kpi-val" style="color:var(--green)">0</div></div>
+    <div class="card"><div class="kpi-label">Pakai Veropsa People</div><div id="sa-k-people" class="kpi-val" style="color:var(--blue)">0</div></div>
+    <div class="card"><div class="kpi-label">Pakai Veropsa Supply</div><div id="sa-k-supply" class="kpi-val" style="color:var(--primary)">0</div></div>
+  </div>
+
+  <div id="sa-company-grid" class="sa-grid"></div>
+</div>
+
 <!-- MODAL UNIVERSAL -->
 <div id="modal-bg" class="modal-bg hidden" onclick="if(event.target===this) closeModal()">
   <div class="modal-box" id="modal-body"></div>
@@ -543,8 +584,7 @@
   var tenantContext = { slug: null, domain: null };
   var activeCompany = null;
   var activeFeatures = {};
-  var availableCompanies = [];
-  var isSuperAdmin = false;
+  var saCompanies = [];
   var hrCache = { employees: [], locations: [], bpjs: [], attendance: [], requests: [], monthlyRaw: [], monthlySummary: [] };
 
   var PAGE_FEATURE_MAP = {
@@ -553,6 +593,41 @@
     bpjs: 'people_bpjs'
   };
 
+  // Daftar definisi toggle fitur lintas modul di Control Plane
+  var FEATURE_CATALOG = [
+    {
+      group: 'Veropsa People (HRIS & Presensi)',
+      items: [
+        { key: 'people_presensi', label: 'Modul Presensi Harian', desc: 'Absensi selfie & GPS geofencing di HP karyawan' },
+        { key: 'people_rekap_bulanan', label: 'Rekap Bulanan (Siap Gajian)', desc: 'Tab rekap kehadiran bulanan & export CSV' },
+        { key: 'people_pengajuan', label: 'Modul Pengajuan & Izin', desc: 'Pengajuan izin, sakit, & koreksi lupa presensi' },
+        { key: 'people_bpjs', label: 'Modul Kontrol BPJS', desc: 'Monitoring kepesertaan e-Dabu (JKN) & SIPP (KPJ)' },
+        { key: 'people_face_rec', label: 'Face Recognition', desc: 'Verifikasi wajah otomatis di browser + saklar per karyawan' },
+        { key: 'people_multi_lokasi', label: 'Multi-Lokasi / Rolling', desc: 'Izin presensi lintas lokasi untuk pekerja rolling' },
+        { key: 'people_dinas_luar', label: 'Presensi Dinas Luar', desc: 'Menu presensi di luar radius kantor dengan tujuan' },
+        { key: 'people_watermark_foto', label: 'Watermark Foto Otomatis', desc: 'Tempel nama, jam WIB, & lokasi di atas foto selfie' },
+        { key: 'people_import_csv', label: 'Import Massal CSV', desc: 'Upload massal biodata karyawan & BPJS sekaligus' }
+      ]
+    },
+    {
+      group: 'Veropsa Supply (Inventory & Pengadaan)',
+      items: [
+        { key: 'supply_enabled', label: 'Akses Utama Veropsa Supply', desc: 'Aktifkan portal manajemen stok & operasional' },
+        { key: 'supply_stock_opname', label: 'Stock Opname', desc: 'Rekonsiliasi stok fisik berkala (cycle count)' },
+        { key: 'supply_piutang', label: 'Kontrol Piutang / Tagihan', desc: 'Rekap cicilan & pelunasan invoice instansi' },
+        { key: 'supply_analisa_harga', label: 'Analisa Harga', desc: 'Perbandingan harga beli & riwayat supplier' },
+        { key: 'supply_harga_laba', label: 'Kalkulasi Harga & Laba', desc: 'Margin keuntungan & laporan profitabilitas' },
+        { key: 'supply_katalog_publik', label: 'Katalog Harga Publik', desc: 'Halaman daftar harga tanpa login (?c=slug)' }
+      ]
+    },
+    {
+      group: 'Veropsa Custom (White-Label & SOP Khusus)',
+      items: [
+        { key: 'custom_whitelabel', label: 'White-Label Penuh', desc: 'Sembunyikan label Veropsa, tampilkan merek klien penuh' }
+      ]
+    }
+  ];
+
   window.onload = function() {
     if (localStorage.getItem('hris_dark') === '1') document.body.classList.add('dark');
     detectTenant();
@@ -560,15 +635,28 @@
     document.getElementById('filter-date').value = today;
     document.getElementById('filter-month').value = today.slice(0, 7);
     document.getElementById('req-tgl').value = today;
-    if (window.location.hash === '#admin') setLoginMode('hr');
+    if (window.location.hash === SUPERADMIN_HASH) setLoginMode('sa');
+    else if (window.location.hash === '#admin') setLoginMode('hr');
     loadBranding();
     checkExistingSession();
   };
 
   window.onhashchange = function() {
-    if (window.location.hash === '#admin') setLoginMode('hr');
-    else setLoginMode('emp');
+    if (window.location.hash === SUPERADMIN_HASH) {
+      sb.auth.getSession().then(function(res) {
+        if (res.data && res.data.session) openSuperAdminPanel(res.data.session.user);
+        else { hideAllViews(); document.getElementById('view-login').classList.remove('hidden'); setLoginMode('sa'); }
+      });
+    } else if (window.location.hash === '#admin') {
+      setLoginMode('hr');
+    } else {
+      setLoginMode('emp');
+    }
   };
+
+  function hideAllViews() {
+    ['view-login','view-emp','view-hr','view-sa'].forEach(function(id){ document.getElementById(id).classList.add('hidden'); });
+  }
 
   function detectTenant() {
     var params = new URLSearchParams(window.location.search);
@@ -604,7 +692,7 @@
     if (!b) return;
     if (b.primary_color) document.documentElement.style.setProperty('--primary', b.primary_color);
     var compName = b.company_name || 'PORTAL PRESENSI';
-    document.title = 'Presensi — ' + compName;
+    if (window.location.hash !== SUPERADMIN_HASH) document.title = 'Presensi — ' + compName;
     ['login-company','emp-company','hr-company','hr-mobile-title'].forEach(function(id){ document.getElementById(id).textContent = compName; });
     document.getElementById('hr-sub').textContent = b.app_subtitle || 'Veropsa People';
     document.getElementById('hr-brand-kicker').textContent = customWhiteLabel ? 'PORTAL HRIS' : 'VEROPSA PEOPLE';
@@ -623,6 +711,7 @@
   }
 
   function loadBranding() {
+    if (window.location.hash === SUPERADMIN_HASH) return;
     sb.rpc('hris_get_public_branding', {
       p_slug: tenantContext.slug,
       p_domain: tenantContext.domain
@@ -643,22 +732,38 @@
 
   function checkExistingSession() {
     sb.auth.getSession().then(function(res) {
-      if (res.data && res.data.session) { openHrDashboard(res.data.session.user); return; }
-      if (window.location.hash === '#admin') return;
+      if (res.data && res.data.session) {
+        if (window.location.hash === SUPERADMIN_HASH) openSuperAdminPanel(res.data.session.user);
+        else openHrDashboard(res.data.session.user);
+        return;
+      }
+      if (window.location.hash === '#admin' || window.location.hash === SUPERADMIN_HASH) return;
       var saved = localStorage.getItem(getEmpStorageKey()) || localStorage.getItem('hris_emp_cred');
       if (saved) { try { var c = JSON.parse(saved); callEmpLogin(c.nik, c.pin, true); } catch(e){} }
     });
   }
 
   function setLoginMode(mode) {
-    var isHr = (mode === 'hr');
+    var isSa = (mode === 'sa');
+    var isHr = (mode === 'hr' || isSa);
     document.getElementById('login-msg').classList.add('hidden');
     document.getElementById('form-emp-login').classList.toggle('hidden', isHr);
     document.getElementById('form-hr-login').classList.toggle('hidden', !isHr);
     document.getElementById('link-to-hr').classList.toggle('hidden', isHr);
-    document.getElementById('link-to-emp').classList.toggle('hidden', !isHr);
-    document.getElementById('login-title').textContent = isHr ? 'Login Admin / HR' : 'Presensi Karyawan';
-    document.getElementById('login-sub').textContent = isHr ? 'Masuk untuk mengelola data operasional HRIS.' : 'Silakan masuk dengan NIK dan PIN Anda.';
+    document.getElementById('link-to-emp').classList.toggle('hidden', !isHr || isSa);
+    if (isSa) {
+      document.title = 'Console Access';
+      document.getElementById('login-logo').classList.add('hidden');
+      document.getElementById('login-company').textContent = 'SYSTEM CONSOLE';
+      document.getElementById('login-title').textContent = 'Console Access';
+      document.getElementById('login-sub').textContent = 'Otorisasi diperlukan untuk melanjutkan.';
+    } else if (isHr) {
+      document.getElementById('login-title').textContent = 'Login Admin / HR';
+      document.getElementById('login-sub').textContent = 'Masuk untuk mengelola data operasional HRIS.';
+    } else {
+      document.getElementById('login-title').textContent = 'Presensi Karyawan';
+      document.getElementById('login-sub').textContent = 'Silakan masuk dengan NIK dan PIN Anda.';
+    }
   }
 
   function openLoginHelpWa(e) {
@@ -777,7 +882,7 @@
       localStorage.setItem(getEmpStorageKey(), JSON.stringify({ nik: nik, pin: pin }));
       empSession = { data: d, nik: nik, pin: pin };
       applyBranding(d.settings, hasFeature('custom_whitelabel'));
-      document.getElementById('view-login').classList.add('hidden');
+      hideAllViews();
       document.getElementById('view-emp').classList.remove('hidden');
       document.getElementById('emp-name').textContent = d.employee.nama_lengkap;
 
@@ -1147,64 +1252,38 @@
     location.reload();
   }
 
-  // ===== HR DASHBOARD (MULTI-TENANT) =====
+  // ===== AUTH ROUTER (HR DASHBOARD VS SUPER ADMIN) =====
   function handleHrLogin(e) {
     e.preventDefault();
     var btn = document.getElementById('btn-hr-login'); btn.disabled = true; btn.textContent = 'Memeriksa...';
     sb.auth.signInWithPassword({ email: document.getElementById('hr-email').value.trim(), password: document.getElementById('hr-pass').value }).then(function(res) {
-      btn.disabled = false; btn.textContent = 'MASUK DASHBOARD HR';
+      btn.disabled = false; btn.textContent = 'MASUK';
       if (res.error) { showLoginErr(res.error.message); return; }
-      openHrDashboard(res.data.user);
+      if (window.location.hash === SUPERADMIN_HASH) openSuperAdminPanel(res.data.user);
+      else openHrDashboard(res.data.user);
     });
   }
 
+  // ===== DASHBOARD HR (DATA PLANE — TERISOLASI PER TENANT) =====
   function openHrDashboard(user) {
     document.getElementById('hr-user-email').textContent = user.email;
     sb.from('user_roles').select('role, company_id').eq('user_id', user.id).then(function(r) {
-      var roles = r.data || [];
+      var roles = (r.data || []).filter(function(x){ return !!x.company_id; });
       if (!roles.length) {
-        showLoginErr('Akun Anda belum terhubung ke perusahaan mana pun.');
+        showLoginErr('Akun Anda belum terhubung ke perusahaan operasional mana pun.');
         sb.auth.signOut();
         return;
       }
-      isSuperAdmin = roles.some(function(x){ return x.role === 'superadmin'; });
-      sb.from('companies').select('*').order('created_at', { ascending: true }).then(function(cRes) {
-        availableCompanies = cRes.data || [];
-        if (!availableCompanies.length) {
-          showLoginErr('Data perusahaan tidak ditemukan.');
-          return;
-        }
-        var picked = null;
-        if (tenantContext.slug) {
-          picked = availableCompanies.find(function(c){ return c.slug === tenantContext.slug; });
-        }
-        if (!picked) {
-          var myFirstCompId = roles[0].company_id;
-          picked = availableCompanies.find(function(c){ return c.id === myFirstCompId; }) || availableCompanies[0];
-        }
-
-        if (isSuperAdmin && availableCompanies.length > 0) {
-          var sw = document.getElementById('tenant-switcher');
-          var sel = document.getElementById('tenant-select');
-          sel.innerHTML = availableCompanies.map(function(c){
-            var nm = (c.branding && c.branding.company_name) ? c.branding.company_name : c.slug;
-            return '<option value="' + c.id + '">' + esc(nm) + ' (' + esc(c.slug) + ')</option>';
-          }).join('');
-          sel.value = picked.id;
-          sw.classList.remove('hidden');
-        }
-
-        document.getElementById('view-login').classList.add('hidden');
+      var myCompIds = roles.map(function(x){ return x.company_id; });
+      sb.from('companies').select('*').in('id', myCompIds).then(function(cRes) {
+        var myComps = cRes.data || [];
+        if (!myComps.length) { showLoginErr('Data perusahaan tidak ditemukan.'); return; }
+        var picked = (tenantContext.slug ? myComps.find(function(c){ return c.slug === tenantContext.slug; }) : null) || myComps[0];
+        hideAllViews();
         document.getElementById('view-hr').classList.remove('hidden');
         setActiveCompany(picked);
       });
     });
-  }
-
-  function switchActiveTenant(compId) {
-    var comp = availableCompanies.find(function(c){ return c.id === compId; });
-    if (!comp) return;
-    setActiveCompany(comp);
   }
 
   function setActiveCompany(comp) {
@@ -1227,7 +1306,6 @@
     loadHrData();
   }
 
-  // Proteksi Lapis 2: Blokir akses langsung ke halaman jika feature flag-nya false
   function showHrPage(id, btn) {
     var reqFlag = PAGE_FEATURE_MAP[id];
     if (reqFlag && !hasFeature(reqFlag)) {
@@ -1530,11 +1608,11 @@
   }
 
   function badgeStatus(st) {
-    if (st === 'AKTIF' || st === 'HADIR' || st === 'DISETUJUI') return '<span class="badge b-green">' + st + '</span>';
+    if (st === 'AKTIF' || st === 'ACTIVE' || st === 'HADIR' || st === 'DISETUJUI') return '<span class="badge b-green">' + st + '</span>';
     if (st === 'DINAS_LUAR') return '<span class="badge b-blue">DINAS LUAR</span>';
     if (st === 'IZIN' || st === 'PROSES_DAFTAR' || st === 'PENDING') return '<span class="badge b-orange">' + st + '</span>';
     if (st === 'SAKIT') return '<span class="badge b-purple">SAKIT</span>';
-    if (st === 'PERLU_NONAKTIF' || st === 'BELUM_DAFTAR' || st === 'DITOLAK') return '<span class="badge b-red">' + st + '</span>';
+    if (st === 'PERLU_NONAKTIF' || st === 'BELUM_DAFTAR' || st === 'DITOLAK' || st === 'SUSPENDED') return '<span class="badge b-red">' + st + '</span>';
     return '<span class="badge b-gray">' + st + '</span>';
   }
 
@@ -1768,7 +1846,6 @@
       primary_color: document.getElementById('s-col').value,
       admin_wa: document.getElementById('s-wa').value.trim()
     });
-    // Merge agar key integrasi modul lain (misal supply_*) tidak tertimpa
     var newIntegrations = Object.assign({}, activeCompany.integrations || {}, {
       people_drive_webhook: document.getElementById('s-drv').value.trim(),
       people_drive_secret: document.getElementById('s-drv-sec').value.trim()
@@ -1784,6 +1861,340 @@
       activeCompany.integrations = newIntegrations;
       applyBranding(newBranding, hasFeature('custom_whitelabel'));
       alert('Pengaturan perusahaan tersimpan!');
+    });
+  }
+
+  // ===== PANEL SUPER ADMIN VEROPSA (CONTROL PLANE ONLY) =====
+  function openSuperAdminPanel(user) {
+    sb.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'superadmin').then(function(r) {
+      if (r.error || !r.data || !r.data.length) {
+        showLoginErr('Akses ditolak. Akun ini tidak memiliki hak kontrol pusat.');
+        hideAllViews();
+        document.getElementById('view-login').classList.remove('hidden');
+        setLoginMode('sa');
+        return;
+      }
+      document.title = 'Veropsa — Control Plane';
+      hideAllViews();
+      document.getElementById('view-sa').classList.remove('hidden');
+      loadSuperAdminData();
+    });
+  }
+
+  function loadSuperAdminData() {
+    sb.from('companies').select('*').order('created_at', { ascending: true }).then(function(res) {
+      if (res.error) { alert(res.error.message); return; }
+      saCompanies = res.data || [];
+      renderSuperAdminGrid();
+    });
+  }
+
+  function copyPortalLink(url) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function(){ alert('Link disalin:\n' + url); });
+    } else {
+      prompt('Salin link berikut:', url);
+    }
+  }
+
+  function renderSuperAdminGrid() {
+    var activeCnt = 0, peopleCnt = 0, supplyCnt = 0, html = '';
+    saCompanies.forEach(function(c) {
+      var b = c.branding || {}, f = c.features || {}, dom = c.domains || {};
+      if (c.status === 'ACTIVE') activeCnt++;
+      if (f.people_presensi) peopleCnt++;
+      if (f.supply_enabled) supplyCnt++;
+
+      var peopleLink = dom.people ? ('https://' + dom.people) : (PORTAL_PEOPLE_URL + '/?c=' + c.slug);
+      var supplyLink = dom.supply ? ('https://' + dom.supply) : (PORTAL_SUPPLY_URL + '/?c=' + c.slug);
+      var activeFlagsCount = Object.keys(f).filter(function(k){ return f[k] === true; }).length;
+
+      html += '<div class="sa-card">' +
+        '<div>' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">' +
+            '<div>' +
+              '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<span style="width:12px;height:12px;border-radius:3px;display:inline-block;background:' + esc(b.primary_color || '#EA580C') + ';"></span>' +
+                '<strong style="font-size:16px;">' + esc(b.company_name || c.slug) + '</strong>' +
+              '</div>' +
+              '<div style="font-size:12px;color:var(--muted);margin-top:2px;">slug: <b>' + esc(c.slug) + '</b> • ' + activeFlagsCount + ' fitur aktif</div>' +
+            '</div>' +
+            badgeStatus(c.status) +
+          '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">' +
+            (f.people_presensi ? '<span class="badge b-blue">Veropsa People</span>' : '') +
+            (f.supply_enabled ? '<span class="badge b-orange">Veropsa Supply</span>' : '') +
+            (f.custom_whitelabel ? '<span class="badge b-purple">White-Label</span>' : '') +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--muted);background:var(--bg);padding:10px;border-radius:8px;margin-bottom:14px;">' +
+            '<div style="margin-bottom:4px;">People: <b style="color:var(--text);">' + esc(dom.people || ('?c=' + c.slug)) + '</b></div>' +
+            '<div>Supply: <b style="color:var(--text);">' + esc(dom.supply || ('?c=' + c.slug)) + '</b></div>' +
+          '</div>' +
+        '</div>' +
+        '<div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">' +
+            '<button class="btn-outline" style="flex:1;" onclick="copyPortalLink(\'' + esc(peopleLink) + '\')">Salin Link People</button>' +
+            '<button class="btn-outline" style="flex:1;" onclick="copyPortalLink(\'' + esc(supplyLink) + '\')">Salin Link Supply</button>' +
+          '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+            '<button class="btn-dark" style="flex:1;" onclick="openSaCompanyModal(\'' + c.id + '\', \'features\')">Toggle Fitur</button>' +
+            '<button class="btn-outline" onclick="openSaCompanyModal(\'' + c.id + '\', \'branding\')">Branding</button>' +
+            '<button class="btn-outline" onclick="openSaAdminsModal(\'' + c.id + '\')">Admin</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    });
+
+    document.getElementById('sa-k-total').textContent = saCompanies.length;
+    document.getElementById('sa-k-active').textContent = activeCnt;
+    document.getElementById('sa-k-people').textContent = peopleCnt;
+    document.getElementById('sa-k-supply').textContent = supplyCnt;
+    document.getElementById('sa-company-grid').innerHTML = html || '<div class="card">Belum ada klien terdaftar.</div>';
+  }
+
+  function openAddCompanyModal() {
+    openModal(
+      '<div class="modal-head"><h3>+ Tambah Klien Baru Veropsa</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
+      '<form onsubmit="submitAddCompany(event)">' +
+        '<div class="grid-2">' +
+          '<div class="form-group"><label>Slug Unik (Huruf kecil, tanpa spasi)</label><input id="nc-slug" placeholder="contoh: maju-jaya" required /></div>' +
+          '<div class="form-group"><label>Nama Perusahaan</label><input id="nc-name" placeholder="PT Maju Jaya" required /></div>' +
+          '<div class="form-group"><label>Sub-Judul Aplikasi</label><input id="nc-sub" value="Veropsa Operations" /></div>' +
+          '<div class="form-group"><label>Warna Aksen</label><input id="nc-col" type="color" value="#EA580C" style="height:44px;padding:4px;" /></div>' +
+          '<div class="form-group"><label>Subdomain People (Opsional)</label><input id="nc-dom-p" placeholder="hris-majujaya.veropsa.com" /></div>' +
+          '<div class="form-group"><label>Subdomain Supply (Opsional)</label><input id="nc-dom-s" placeholder="supply-majujaya.veropsa.com" /></div>' +
+        '</div>' +
+        '<div class="chk-box">' +
+          '<label style="margin-bottom:8px;">Paket Awal yang Langsung Diaktifkan</label>' +
+          '<label class="chk-row"><input type="checkbox" id="nc-pkg-people" checked /> Aktifkan Veropsa People (HRIS & Presensi)</label>' +
+          '<label class="chk-row"><input type="checkbox" id="nc-pkg-supply" /> Aktifkan Veropsa Supply (Inventory & ATK)</label>' +
+          '<label class="chk-row"><input type="checkbox" id="nc-pkg-wl" /> Aktifkan Veropsa Custom (White-Label Penuh)</label>' +
+        '</div>' +
+        '<button type="submit" class="btn-primary">Simpan Klien Baru</button>' +
+      '</form>'
+    );
+  }
+
+  function submitAddCompany(e) {
+    e.preventDefault();
+    var slug = document.getElementById('nc-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (!slug) { alert('Slug tidak valid.'); return; }
+    var usePeople = document.getElementById('nc-pkg-people').checked;
+    var useSupply = document.getElementById('nc-pkg-supply').checked;
+    var useWL = document.getElementById('nc-pkg-wl').checked;
+
+    var features = {
+      people_presensi: usePeople, people_rekap_bulanan: usePeople, people_pengajuan: usePeople,
+      people_bpjs: usePeople, people_face_rec: usePeople, people_multi_lokasi: usePeople,
+      people_dinas_luar: usePeople, people_watermark_foto: usePeople, people_import_csv: usePeople,
+      supply_enabled: useSupply, supply_stock_opname: useSupply, supply_piutang: useSupply,
+      supply_analisa_harga: useSupply, supply_harga_laba: useSupply, supply_katalog_publik: useSupply,
+      custom_whitelabel: useWL
+    };
+    var domains = {};
+    var dp = document.getElementById('nc-dom-p').value.trim().toLowerCase();
+    var ds = document.getElementById('nc-dom-s').value.trim().toLowerCase();
+    if (dp) domains.people = dp;
+    if (ds) domains.supply = ds;
+
+    sb.from('companies').insert([{
+      slug: slug,
+      status: 'ACTIVE',
+      domains: domains,
+      branding: {
+        company_name: document.getElementById('nc-name').value.trim(),
+        app_subtitle: document.getElementById('nc-sub').value.trim(),
+        primary_color: document.getElementById('nc-col').value,
+        logo_url: '',
+        admin_wa: ''
+      },
+      features: features,
+      integrations: {}
+    }]).then(function(r) {
+      if (r.error) { alert(r.error.message); return; }
+      closeModal();
+      loadSuperAdminData();
+    });
+  }
+
+  function openSaCompanyModal(compId, mode) {
+    var c = saCompanies.find(function(x){ return x.id === compId; });
+    if (!c) return;
+    var b = c.branding || {}, f = c.features || {}, dom = c.domains || {};
+
+    if (mode === 'features') {
+      var groupsHtml = '';
+      var knownKeys = {};
+      FEATURE_CATALOG.forEach(function(g) {
+        var rows = '';
+        g.items.forEach(function(it) {
+          knownKeys[it.key] = true;
+          var checked = f[it.key] === true ? 'checked' : '';
+          rows += '<div class="toggle-row">' +
+            '<div class="toggle-info"><strong>' + esc(it.label) + '</strong><small>' + esc(it.desc) + ' (<code>' + esc(it.key) + '</code>)</small></div>' +
+            '<label class="switch"><input type="checkbox" ' + checked + ' onchange="toggleSaFeature(\'' + c.id + '\',\'' + it.key + '\',this.checked)" /><span class="slider"></span></label>' +
+          '</div>';
+        });
+        groupsHtml += '<div class="sa-flag-group"><div class="sa-flag-title">' + esc(g.group) + '</div>' + rows + '</div>';
+      });
+
+      // Tampilkan custom flags tambahan (custom_*) yang sudah ada di JSONB
+      var extraCustomRows = '';
+      Object.keys(f).forEach(function(k) {
+        if (!knownKeys[k]) {
+          extraCustomRows += '<div class="toggle-row">' +
+            '<div class="toggle-info"><strong>' + esc(k) + '</strong><small>Custom flag perilaku klien</small></div>' +
+            '<label class="switch"><input type="checkbox" ' + (f[k]===true?'checked':'') + ' onchange="toggleSaFeature(\'' + c.id + '\',\'' + esc(k) + '\',this.checked)" /><span class="slider"></span></label>' +
+          '</div>';
+        }
+      });
+
+      openModal(
+        '<div class="modal-head"><h3>Toggle Fitur — ' + esc(b.company_name || c.slug) + '</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:10px;background:var(--bg);margin-bottom:14px;border:1px solid var(--border);">' +
+          '<div><strong style="font-size:13px;">Status Akses Klien</strong><div style="font-size:11px;color:var(--muted);">Matikan (SUSPENDED) untuk membekukan sementara portal klien ini</div></div>' +
+          '<button class="' + (c.status==='ACTIVE'?'btn-ok':'btn-no') + '" onclick="toggleSaCompanyStatus(\'' + c.id + '\')">' + c.status + ' (Klik Ubah)</button>' +
+        '</div>' +
+        groupsHtml +
+        (extraCustomRows ? '<div class="sa-flag-group"><div class="sa-flag-title">Custom Flags Tambahan</div>' + extraCustomRows + '</div>' : '') +
+        '<form onsubmit="addCustomFlag(event,\'' + c.id + '\')" style="display:flex;gap:8px;margin-top:10px;">' +
+          '<input id="sa-new-flag" placeholder="Tambah flag baru (contoh: custom_shift_khusus)" required />' +
+          '<button type="submit" class="btn-dark" style="white-space:nowrap;">+ Tambah Flag</button>' +
+        '</form>'
+      );
+    } else {
+      openModal(
+        '<div class="modal-head"><h3>Branding & Domain — ' + esc(c.slug) + '</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
+        '<form onsubmit="saveSaBranding(event,\'' + c.id + '\')">' +
+          '<div class="grid-2">' +
+            '<div class="form-group"><label>Nama Perusahaan</label><input id="sb-name" value="' + esc(b.company_name||'') + '" required /></div>' +
+            '<div class="form-group"><label>Sub-Judul</label><input id="sb-sub" value="' + esc(b.app_subtitle||'') + '" /></div>' +
+            '<div class="form-group"><label>Warna Aksen</label><input id="sb-col" type="color" value="' + esc(b.primary_color||'#EA580C') + '" style="height:44px;padding:4px;" /></div>' +
+            '<div class="form-group"><label>WA Admin Bantuan</label><input id="sb-wa" value="' + esc(b.admin_wa||'') + '" placeholder="628..." /></div>' +
+            '<div class="form-group"><label>Subdomain Veropsa People</label><input id="sb-dom-p" value="' + esc(dom.people||'') + '" placeholder="hris-klien.veropsa.com" /></div>' +
+            '<div class="form-group"><label>Subdomain Veropsa Supply</label><input id="sb-dom-s" value="' + esc(dom.supply||'') + '" placeholder="supply-klien.veropsa.com" /></div>' +
+          '</div>' +
+          '<div class="form-group"><label>URL Logo Perusahaan</label><input id="sb-logo" value="' + esc(b.logo_url||'') + '" placeholder="https://.../logo.png" /></div>' +
+          '<button type="submit" class="btn-primary">Simpan Perubahan</button>' +
+        '</form>'
+      );
+    }
+  }
+
+  function toggleSaFeature(compId, key, val) {
+    var c = saCompanies.find(function(x){ return x.id === compId; });
+    if (!c) return;
+    var nextFeatures = Object.assign({}, c.features || {});
+    nextFeatures[key] = !!val;
+    sb.from('companies').update({ features: nextFeatures, updated_at: new Date().toISOString() }).eq('id', compId).then(function(r) {
+      if (r.error) { alert('Gagal update: ' + r.error.message); loadSuperAdminData(); return; }
+      c.features = nextFeatures;
+      renderSuperAdminGrid();
+    });
+  }
+
+  function addCustomFlag(e, compId) {
+    e.preventDefault();
+    var raw = document.getElementById('sa-new-flag').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    if (!raw) return;
+    if (raw.indexOf('custom_') !== 0 && raw.indexOf('people_') !== 0 && raw.indexOf('supply_') !== 0) {
+      raw = 'custom_' + raw;
+    }
+    var c = saCompanies.find(function(x){ return x.id === compId; });
+    if (!c) return;
+    var nextFeatures = Object.assign({}, c.features || {});
+    nextFeatures[raw] = true;
+    sb.from('companies').update({ features: nextFeatures, updated_at: new Date().toISOString() }).eq('id', compId).then(function(r) {
+      if (r.error) { alert(r.error.message); return; }
+      c.features = nextFeatures;
+      renderSuperAdminGrid();
+      openSaCompanyModal(compId, 'features');
+    });
+  }
+
+  function toggleSaCompanyStatus(compId) {
+    var c = saCompanies.find(function(x){ return x.id === compId; });
+    if (!c) return;
+    var nextSt = c.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    if (!confirm('Ubah status klien ' + c.slug + ' menjadi ' + nextSt + '?')) return;
+    sb.from('companies').update({ status: nextSt, updated_at: new Date().toISOString() }).eq('id', compId).then(function(r) {
+      if (r.error) { alert(r.error.message); return; }
+      c.status = nextSt;
+      renderSuperAdminGrid();
+      openSaCompanyModal(compId, 'features');
+    });
+  }
+
+  function saveSaBranding(e, compId) {
+    e.preventDefault();
+    var c = saCompanies.find(function(x){ return x.id === compId; });
+    if (!c) return;
+    var nextBranding = Object.assign({}, c.branding || {}, {
+      company_name: document.getElementById('sb-name').value.trim(),
+      app_subtitle: document.getElementById('sb-sub').value.trim(),
+      primary_color: document.getElementById('sb-col').value,
+      admin_wa: document.getElementById('sb-wa').value.trim(),
+      logo_url: document.getElementById('sb-logo').value.trim()
+    });
+    var nextDomains = Object.assign({}, c.domains || {});
+    var dp = document.getElementById('sb-dom-p').value.trim().toLowerCase();
+    var ds = document.getElementById('sb-dom-s').value.trim().toLowerCase();
+    if (dp) nextDomains.people = dp; else delete nextDomains.people;
+    if (ds) nextDomains.supply = ds; else delete nextDomains.supply;
+
+    sb.from('companies').update({
+      branding: nextBranding, domains: nextDomains, updated_at: new Date().toISOString()
+    }).eq('id', compId).then(function(r) {
+      if (r.error) { alert(r.error.message); return; }
+      c.branding = nextBranding; c.domains = nextDomains;
+      closeModal();
+      renderSuperAdminGrid();
+    });
+  }
+
+  function openSaAdminsModal(compId) {
+    var c = saCompanies.find(function(x){ return x.id === compId; });
+    if (!c) return;
+    openModal('<div class="modal-head"><h3>Admin Klien — ' + esc((c.branding && c.branding.company_name) || c.slug) + '</h3><button class="btn-outline" onclick="closeModal()">✕</button></div><div id="sa-admin-body">Memuat daftar admin...</div>');
+
+    sb.rpc('veropsa_sa_list_admins', { p_company_id: compId }).then(function(res) {
+      var d = res.data;
+      if (res.error || !d || !d.ok) { document.getElementById('sa-admin-body').innerHTML = '<div class="alert alert-err">Gagal memuat daftar admin.</div>'; return; }
+      var rows = '';
+      (d.admins || []).forEach(function(a) {
+        rows += '<div class="list-row"><div><strong>' + esc(a.email) + '</strong><br><span class="badge b-blue">' + esc(a.role) + '</span></div>' +
+          '<button class="btn-no" onclick="removeSaAdmin(\'' + a.id + '\',\'' + compId + '\')">Hapus</button></div>';
+      });
+      document.getElementById('sa-admin-body').innerHTML =
+        '<div style="margin-bottom:16px;">' + (rows || '<div style="color:var(--muted);font-size:13px;">Belum ada admin tertaut ke klien ini.</div>') + '</div>' +
+        '<form onsubmit="assignSaAdmin(event,\'' + compId + '\')" style="border-top:1px solid var(--border);padding-top:14px;">' +
+          '<label>Tautkan Email Admin Baru (Akun harus sudah dibuat di Supabase Auth)</label>' +
+          '<div class="grid-2" style="margin-bottom:10px;">' +
+            '<input type="email" id="sa-adm-email" placeholder="email@klien.com" required />' +
+            '<select id="sa-adm-role"><option value="company_admin">company_admin (Admin Klien)</option><option value="staff">staff</option><option value="superadmin">superadmin</option></select>' +
+          '</div>' +
+          '<button type="submit" class="btn-dark">Tautkan Akses</button>' +
+        '</form>';
+    });
+  }
+
+  function assignSaAdmin(e, compId) {
+    e.preventDefault();
+    sb.rpc('veropsa_sa_assign_admin', {
+      p_email: document.getElementById('sa-adm-email').value.trim(),
+      p_company_id: compId,
+      p_role: document.getElementById('sa-adm-role').value
+    }).then(function(res) {
+      if (res.error || !res.data || !res.data.ok) { alert(res.data ? res.data.message : 'Gagal menautkan email.'); return; }
+      openSaAdminsModal(compId);
+    });
+  }
+
+  function removeSaAdmin(roleId, compId) {
+    if (!confirm('Cabut akses admin ini dari perusahaan tersebut?')) return;
+    sb.rpc('veropsa_sa_remove_admin', { p_role_id: roleId }).then(function(res) {
+      if (res.error || !res.data || !res.data.ok) alert('Gagal menghapus.');
+      else openSaAdminsModal(compId);
     });
   }
 
