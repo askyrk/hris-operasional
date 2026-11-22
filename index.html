@@ -208,7 +208,6 @@
   </div>
 
   <div id="emp-msg" class="alert hidden"></div>
-  <!-- Posisi offscreen agar aman dibuka di Chrome, Brave, dan browser bawaan HP Android lama -->
   <input type="file" id="camera-input" accept="image/*" capture="user" style="position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px;" onchange="onPhotoCaptured(event)" />
 
   <div id="box-normal">
@@ -360,7 +359,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Karyawan</th><th>Lokasi Aktual</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Wajah</th><th>Keterangan</th><th>Foto</th></tr></thead>
+                <thead><tr><th>Karyawan</th><th>Lokasi Aktual</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Wajah (M / P)</th><th>Keterangan</th><th>Foto</th></tr></thead>
                 <tbody id="absen-body"></tbody>
               </table>
             </div>
@@ -641,9 +640,11 @@
       if (!det || !det.descriptor) return { status: 'NO_FACE', distance: null };
       var arr = Array.prototype.slice.call(det.descriptor).map(function(n){ return Math.round(n * 10000) / 10000; });
       if (!emp.face_descriptor || !Array.isArray(emp.face_descriptor) || emp.face_descriptor.length !== 128) {
-        sb.rpc('hris_emp_save_face', { p_nik: empSession.nik, p_pin: empSession.pin, p_descriptor: arr });
-        emp.face_descriptor = arr;
-        return { status: 'ENROLLED', distance: 0 };
+        // Wajib di-return & pakai .then() agar Supabase benar-benar mengeksekusi penyimpanan ke database
+        return sb.rpc('hris_emp_save_face', { p_nik: empSession.nik, p_pin: empSession.pin, p_descriptor: arr }).then(function() {
+          emp.face_descriptor = arr;
+          return { status: 'ENROLLED', distance: 0 };
+        });
       }
       var dist = faceapi.euclideanDistance(det.descriptor, new Float32Array(emp.face_descriptor));
       dist = Math.round(dist * 1000) / 1000;
@@ -714,7 +715,6 @@
       var wa = formatWaNumber(d.settings && d.settings.admin_wa);
       document.getElementById('btn-wa-admin').classList.toggle('hidden', wa.length < 9);
 
-      // Muat model AI di latar belakang HANYA jika fitur wajah aktif untuk karyawan ini
       if (d.employee.face_rec_enabled !== false) {
         setTimeout(function(){ ensureFaceModels().catch(function(){}); }, 1500);
       }
@@ -1003,13 +1003,11 @@
     ['btn-masuk','btn-pulang','btn-dl-masuk','btn-dl-pulang'].forEach(function(id){ document.getElementById(id).disabled = true; });
 
     fileToCanvas(file, function(canvas) {
-      // 1. Jalankan verifikasi wajah di canvas bersih (maks 10 detik, otomatis fallback jika HP lambat)
       verifyFaceOnCanvas(canvas).then(function(faceRes) {
         var actualLoc = currentGPS.matchedLoc || empSession.data.location;
         var locName = pendingIsDL ? 'DINAS_LUAR' : (actualLoc ? actualLoc.nama_lokasi : 'Tanpa_Lokasi');
         var wmLoc = pendingIsDL ? ('DINAS LUAR: ' + document.getElementById('dl-ket').value.trim()) : (actualLoc ? (actualLoc.nama_lokasi + ' (' + actualLoc.kota + ')') : 'GPS Terverifikasi');
 
-        // 2. Tempel Watermark Otomatis (Nama, Tanggal/Jam WIB, Lokasi Aktual) di atas foto
         drawWatermarkOnCanvas(canvas, empSession.data.employee.nama_lengkap, wmLoc, pendingType);
         var base64 = canvas.toDataURL('image/jpeg', 0.68);
         var webhook = empSession.data.settings ? empSession.data.settings.drive_webhook_url : '';
@@ -1129,6 +1127,20 @@
     return '<span style="color:var(--muted)">-</span>';
   }
 
+  function formatFaceCell(a) {
+    if (a.status === 'IZIN' || a.status === 'SAKIT') return '-';
+    var fm = a.face_status_masuk || a.face_status;
+    var fp = a.face_status_pulang;
+    var lines = [];
+    if (a.jam_masuk && fm && fm !== 'DISABLED') {
+      lines.push('<div style="margin-bottom:4px;"><small style="color:var(--muted);font-weight:700;">M:</small> ' + badgeFace(fm) + '</div>');
+    }
+    if (a.jam_pulang && fp && fp !== 'DISABLED') {
+      lines.push('<div><small style="color:var(--muted);font-weight:700;">P:</small> ' + badgeFace(fp) + '</div>');
+    }
+    return lines.length ? lines.join('') : '<span style="color:var(--muted)">-</span>';
+  }
+
   function loadAttendance() {
     var tgl = document.getElementById('filter-date').value || getTodayWIB();
     sb.from('hris_attendance').select('*, hris_locations(nama_lokasi), hris_employees(nik_karyawan, nama_lengkap, location_id, hris_locations(nama_lokasi))').eq('tanggal', tgl).order('created_at', { ascending: false }).then(function(res) {
@@ -1152,7 +1164,7 @@
         : ((emp.hris_locations && emp.hris_locations.nama_lokasi) ? emp.hris_locations.nama_lokasi : '-');
       var st = (a.status === 'TERLAMBAT') ? 'HADIR' : a.status;
       var foto = (a.foto_masuk_url ? '<a href="'+a.foto_masuk_url+'" target="_blank" style="color:var(--primary);margin-right:8px;">' + (st==='IZIN'||st==='SAKIT'?'Bukti':'Masuk') + '</a>' : '') + (a.foto_pulang_url ? '<a href="'+a.foto_pulang_url+'" target="_blank" style="color:var(--blue);">Pulang</a>' : '');
-      html += '<tr><td><strong>' + esc(emp.nama_lengkap||'-') + '</strong></td><td>' + esc(loc) + '</td><td>' + formatTimeWIB(a.jam_masuk) + '</td><td>' + formatPulangCell(a) + '</td><td>' + badgeStatus(st) + '</td><td>' + badgeFace(a.face_status) + '</td><td>' + esc(a.keterangan || '-') + '</td><td>' + (foto||'-') + '</td></tr>';
+      html += '<tr><td><strong>' + esc(emp.nama_lengkap||'-') + '</strong></td><td>' + esc(loc) + '</td><td>' + formatTimeWIB(a.jam_masuk) + '</td><td>' + formatPulangCell(a) + '</td><td>' + badgeStatus(st) + '</td><td>' + formatFaceCell(a) + '</td><td>' + esc(a.keterangan || '-') + '</td><td>' + (foto||'-') + '</td></tr>';
     });
     document.getElementById('absen-body').innerHTML = html || '<tr><td colspan="8">Belum ada data presensi.</td></tr>';
   }
@@ -1564,10 +1576,10 @@
   }
   function exportAttendanceCSV() {
     var tgl = document.getElementById('filter-date').value, locId = document.getElementById('filter-pres-loc').value;
-    var rows = [['Tanggal','NIK','Nama','Lokasi Aktual','Masuk','Pulang','Status','Verifikasi Wajah','Keterangan','Foto Masuk','Foto Pulang']];
+    var rows = [['Tanggal','NIK','Nama','Lokasi Aktual','Masuk','Pulang','Status','Wajah Masuk','Wajah Pulang','Keterangan','Foto Masuk','Foto Pulang']];
     hrCache.attendance.filter(function(a){ var al = a.location_id || (a.hris_employees && a.hris_employees.location_id); return !locId || al === locId; }).forEach(function(a){
       var e=a.hris_employees||{}, l=(a.hris_locations&&a.hris_locations.nama_lokasi)?a.hris_locations.nama_lokasi:(e.hris_locations?e.hris_locations.nama_lokasi:'-');
-      rows.push([tgl,e.nik_karyawan,e.nama_lengkap,l,formatTimeWIB(a.jam_masuk),formatTimeWIB(a.jam_pulang),a.status==='TERLAMBAT'?'HADIR':a.status,a.face_status||'-',a.keterangan||'',a.foto_masuk_url,a.foto_pulang_url]);
+      rows.push([tgl,e.nik_karyawan,e.nama_lengkap,l,formatTimeWIB(a.jam_masuk),formatTimeWIB(a.jam_pulang),a.status==='TERLAMBAT'?'HADIR':a.status,a.face_status_masuk||a.face_status||'-',a.face_status_pulang||'-',a.keterangan||'',a.foto_masuk_url,a.foto_pulang_url]);
     });
     downloadCSV('presensi_harian_'+tgl+'.csv', rows);
   }
