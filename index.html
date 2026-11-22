@@ -628,29 +628,31 @@
   function verifyFaceOnCanvas(canvas) {
     var emp = empSession && empSession.data && empSession.data.employee;
     if (!emp || emp.face_rec_enabled === false) {
-      return Promise.resolve({ status: 'DISABLED', distance: null });
+      return Promise.resolve({ status: 'DISABLED', distance: null, newDescriptor: null });
     }
     var timeoutP = new Promise(function(resolve) {
-      setTimeout(function(){ resolve({ status: 'TIMEOUT', distance: null }); }, 10000);
+      setTimeout(function(){ resolve({ status: 'TIMEOUT', distance: null, newDescriptor: null }); }, 10000);
     });
     var detectP = ensureFaceModels().then(function() {
       var opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 });
       return faceapi.detectSingleFace(canvas, opts).withFaceLandmarks(true).withFaceDescriptor();
     }).then(function(det) {
-      if (!det || !det.descriptor) return { status: 'NO_FACE', distance: null };
-      var arr = Array.prototype.slice.call(det.descriptor).map(function(n){ return Math.round(n * 10000) / 10000; });
-      if (!emp.face_descriptor || !Array.isArray(emp.face_descriptor) || emp.face_descriptor.length !== 128) {
-        // Wajib di-return & pakai .then() agar Supabase benar-benar mengeksekusi penyimpanan ke database
-        return sb.rpc('hris_emp_save_face', { p_nik: empSession.nik, p_pin: empSession.pin, p_descriptor: arr }).then(function() {
-          emp.face_descriptor = arr;
-          return { status: 'ENROLLED', distance: 0 };
-        });
+      if (!det || !det.descriptor) return { status: 'NO_FACE', distance: null, newDescriptor: null };
+      var arr = (Array.from ? Array.from(det.descriptor) : Array.prototype.slice.call(det.descriptor)).map(function(n){
+        return Math.round(n * 10000) / 10000;
+      });
+      var savedDesc = emp.face_descriptor;
+      if (typeof savedDesc === 'string') {
+        try { savedDesc = JSON.parse(savedDesc); } catch(e) { savedDesc = null; }
       }
-      var dist = faceapi.euclideanDistance(det.descriptor, new Float32Array(emp.face_descriptor));
+      if (!savedDesc || !Array.isArray(savedDesc) || savedDesc.length !== 128) {
+        return { status: 'ENROLLED', distance: 0, newDescriptor: arr };
+      }
+      var dist = faceapi.euclideanDistance(det.descriptor, new Float32Array(savedDesc));
       dist = Math.round(dist * 1000) / 1000;
-      return { status: (dist < 0.55 ? 'VERIFIED' : 'MISMATCH'), distance: dist };
+      return { status: (dist < 0.55 ? 'VERIFIED' : 'MISMATCH'), distance: dist, newDescriptor: null };
     }).catch(function() {
-      return { status: 'TIMEOUT', distance: null };
+      return { status: 'TIMEOUT', distance: null, newDescriptor: null };
     });
     return Promise.race([detectP, timeoutP]);
   }
@@ -1020,10 +1022,12 @@
             p_foto_url: fotoUrl, p_keterangan: ket,
             p_location_id: (!pendingIsDL && currentGPS.matchedLoc) ? currentGPS.matchedLoc.id : null,
             p_face_status: faceRes.status,
-            p_face_distance: faceRes.distance
+            p_face_distance: faceRes.distance,
+            p_new_descriptor: faceRes.newDescriptor || null
           }).then(function(res) {
             var d = res.data;
             if (res.error || !d || !d.ok) { showEmpMsg(d && d.message ? d.message : 'Gagal simpan presensi', false); updateEmpButtons(); return; }
+            if (faceRes.newDescriptor) empSession.data.employee.face_descriptor = faceRes.newDescriptor;
             document.getElementById('dl-ket').value = '';
             showEmpMsg('BERHASIL! ' + (pendingIsDL ? 'Dinas Luar ' : 'Presensi ') + pendingType + ' tercatat.', true);
             callEmpLogin(empSession.nik, empSession.pin, true);
@@ -1242,7 +1246,9 @@
       var checked = extraArr.indexOf(l.id) !== -1 ? 'checked' : '';
       return '<label class="chk-row"><input type="checkbox" class="me-extra-loc" value="' + l.id + '" ' + checked + ' /> ' + esc(l.nama_lokasi) + ' (' + esc(l.kota) + ')</label>';
     }).join('');
-    var faceReady = !!(e.face_descriptor && e.face_descriptor.length === 128);
+    var fd = e.face_descriptor;
+    if (typeof fd === 'string') { try { fd = JSON.parse(fd); } catch(err) { fd = null; } }
+    var faceReady = !!(fd && Array.isArray(fd) && fd.length === 128);
 
     openModal(
       '<div class="modal-head"><h3>Biodata & Pengaturan Karyawan</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
