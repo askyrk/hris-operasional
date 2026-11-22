@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Presensi Karyawan</title>
+  <title>Veropsa People — Portal Presensi</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -28,6 +28,7 @@
     .login-card { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 26px 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
     .brand-tag { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
     .brand-dot { width: 10px; height: 10px; background: var(--primary); border-radius: 2px; display: inline-block; flex-shrink: 0; }
+    .brand-logo { max-height: 36px; max-width: 180px; object-fit: contain; margin-bottom: 10px; display: block; }
     .login-title { font-size: 24px; font-weight: 900; margin-top: 8px; letter-spacing: -0.01em; }
     .login-sub { font-size: 14px; color: var(--muted); margin: 4px 0 22px; }
     .form-group { margin-bottom: 14px; }
@@ -95,6 +96,9 @@
     .nav-item.active { background: #111827; color: #FFFFFF; }
     body.dark .nav-item.active { background: var(--primary); color: #FFFFFF; }
     .nav-badge { background: var(--red); color: #FFF; font-size: 11px; padding: 2px 7px; border-radius: 99px; font-weight: 800; }
+    .tenant-switcher { margin-bottom: 12px; padding: 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); }
+    .tenant-switcher label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; color: var(--primary); }
+    .tenant-switcher select { padding: 7px 8px; font-size: 12px; font-weight: 700; }
     .main { flex: 1; padding: 24px 28px; overflow-x: auto; }
     .page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
     .page-kicker { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
@@ -144,7 +148,6 @@
   // ===== GANTI 2 BARIS DI BAWAH INI DENGAN KUNCI SUPABASE KAMU =====
   var SUPABASE_URL = 'https://mqtirqxmballmerllifu.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xdGlycXhtYmFsbG1lcmxsaWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUwNTYzMTUsImV4cCI6MjExMDYzMjMxNX0.T4kVEg2SNpLWB19CEv9FYFgbVkvZl806834AUXn9YZw';
-  var DRIVE_SECRET = 'HRIS-PAMUJA-2026';
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 </script>
@@ -152,6 +155,7 @@
 <!-- 1. HALAMAN LOGIN -->
 <div id="view-login" class="login-wrap">
   <div class="login-card">
+    <img id="login-logo" class="brand-logo hidden" alt="Logo" />
     <div class="brand-tag"><span class="brand-dot"></span> <span id="login-company">PORTAL PRESENSI</span></div>
     <div id="login-title" class="login-title">Presensi Karyawan</div>
     <div id="login-sub" class="login-sub">Silakan masuk dengan NIK dan PIN Anda.</div>
@@ -187,6 +191,7 @@
 <!-- 2. PRESENSI KARYAWAN (HP) -->
 <div id="view-emp" class="emp-wrap hidden">
   <div class="emp-header">
+    <img id="emp-logo" class="brand-logo hidden" alt="Logo" />
     <div class="brand-tag"><span class="brand-dot"></span> <span id="emp-company">PRESENSI</span></div>
     <div id="emp-clock" class="emp-clock">00:00:00</div>
     <div id="emp-date" class="emp-date">-</div>
@@ -224,7 +229,7 @@
   <div id="box-dinas-luar" class="dl-box hidden">
     <strong style="font-size:16px; display:block; margin-bottom:6px;">MENU DINAS LUAR</strong>
     <div style="font-size:13px; margin-bottom:10px;">Presensi kantor ditolak karena Anda di luar lokasi tugas. Isi tujuan di bawah untuk presensi Dinas Luar:</div>
-    <input type="text" id="dl-ket" placeholder="Contoh: Antar berkas ke Kejari / Tugas lapangan" style="margin-bottom:12px;" />
+    <input type="text" id="dl-ket" placeholder="Contoh: Antar berkas / Tugas lapangan" style="margin-bottom:12px;" />
     <button id="btn-dl-masuk" class="big-btn btn-dl" style="margin-bottom:0;" onclick="startPresensi('MASUK', true)">
       DINAS LUAR (MASUK)
       <small>Foto selfie & catat jam masuk dinas luar</small>
@@ -242,7 +247,7 @@
     <div id="emp-hist-list">Belum ada riwayat presensi.</div>
   </div>
 
-  <button class="menu-btn" onclick="toggleBox('box-req-form')">
+  <button id="btn-menu-req" class="menu-btn" onclick="toggleBox('box-req-form')">
     <span>Ajukan Izin / Sakit / Lupa Presensi</span><span>▾</span>
   </button>
   <div id="box-req-form" class="panel-box hidden">
@@ -292,27 +297,33 @@
 <!-- 3. DASHBOARD HR -->
 <div id="view-hr" class="hidden">
   <div class="mobile-bar">
-    <strong id="hr-mobile-title">HRIS</strong>
+    <strong id="hr-mobile-title">VEROPSA PEOPLE</strong>
     <button class="btn-outline" onclick="document.getElementById('hr-sidebar').classList.toggle('open')">Menu</button>
   </div>
 
   <div class="hr-layout">
     <aside id="hr-sidebar" class="sidebar">
       <div>
-        <div class="brand-tag"><span class="brand-dot"></span> WHITE-LABEL ERP</div>
+        <div id="tenant-switcher" class="tenant-switcher hidden">
+          <label>Super Admin — Pilih Klien</label>
+          <select id="tenant-select" onchange="switchActiveTenant(this.value)"></select>
+        </div>
+
+        <img id="hr-logo" class="brand-logo hidden" alt="Logo" />
+        <div class="brand-tag"><span class="brand-dot"></span> <span id="hr-brand-kicker">VEROPSA PEOPLE</span></div>
         <div id="hr-company" style="font-size:17px; font-weight:900; margin-top:6px;">-</div>
         <div id="hr-sub" style="font-size:12px; color:var(--muted); margin-bottom:14px;">-</div>
 
         <div class="nav-section">Operasional</div>
-        <button class="nav-item active" onclick="showHrPage('dash', this)"><span>01 / DASHBOARD</span></button>
-        <button class="nav-item" onclick="showHrPage('pres', this)"><span>02 / PRESENSI & REKAP</span></button>
-        <button class="nav-item" onclick="showHrPage('req', this)"><span>03 / PENGAJUAN & IZIN</span><span id="nav-req-badge" class="nav-badge hidden">0</span></button>
-        <button class="nav-item" onclick="showHrPage('bpjs', this)"><span>04 / KONTROL BPJS</span></button>
+        <button id="nav-dash" class="nav-item active" onclick="showHrPage('dash', this)"><span>01 / DASHBOARD</span></button>
+        <button id="nav-pres" class="nav-item" data-feature="people_presensi" onclick="showHrPage('pres', this)"><span>02 / PRESENSI & REKAP</span></button>
+        <button id="nav-req" class="nav-item" data-feature="people_pengajuan" onclick="showHrPage('req', this)"><span>03 / PENGAJUAN & IZIN</span><span id="nav-req-badge" class="nav-badge hidden">0</span></button>
+        <button id="nav-bpjs" class="nav-item" data-feature="people_bpjs" onclick="showHrPage('bpjs', this)"><span>04 / KONTROL BPJS</span></button>
 
         <div class="nav-section">Master & Sistem</div>
-        <button class="nav-item" onclick="showHrPage('emp', this)"><span>05 / MASTER KARYAWAN</span></button>
-        <button class="nav-item" onclick="showHrPage('loc', this)"><span>06 / LOKASI 6 KOTA</span></button>
-        <button class="nav-item" onclick="showHrPage('set', this)"><span>07 / PENGATURAN</span></button>
+        <button id="nav-emp" class="nav-item" onclick="showHrPage('emp', this)"><span>05 / MASTER KARYAWAN</span></button>
+        <button id="nav-loc" class="nav-item" onclick="showHrPage('loc', this)"><span>06 / LOKASI PENEMPATAN</span></button>
+        <button id="nav-set" class="nav-item" onclick="showHrPage('set', this)"><span>07 / PENGATURAN</span></button>
       </div>
 
       <div style="border-top:1px solid var(--border); padding-top:12px;">
@@ -330,11 +341,11 @@
         </div>
         <div class="kpi-grid">
           <div class="card"><div class="kpi-label">Karyawan Aktif</div><div id="k-emp" class="kpi-val">0</div></div>
-          <div class="card"><div class="kpi-label">Presensi Hari Ini</div><div id="k-hadir" class="kpi-val" style="color:var(--green)">0</div></div>
-          <div class="card"><div class="kpi-label">Pengajuan Menunggu</div><div id="k-req" class="kpi-val" style="color:var(--red)">0</div></div>
-          <div class="card"><div class="kpi-label">BPJS Perlu Tindakan</div><div id="k-bpjs" class="kpi-val" style="color:var(--primary)">0</div></div>
+          <div class="card" data-feature="people_presensi"><div class="kpi-label">Presensi Hari Ini</div><div id="k-hadir" class="kpi-val" style="color:var(--green)">0</div></div>
+          <div class="card" data-feature="people_pengajuan"><div class="kpi-label">Pengajuan Menunggu</div><div id="k-req" class="kpi-val" style="color:var(--red)">0</div></div>
+          <div class="card" data-feature="people_bpjs"><div class="kpi-label">BPJS Perlu Tindakan</div><div id="k-bpjs" class="kpi-val" style="color:var(--primary)">0</div></div>
         </div>
-        <div class="card">
+        <div class="card" data-feature="people_bpjs">
           <div style="font-weight:800; margin-bottom:12px;">Peringatan Kontrol BPJS</div>
           <div class="table-wrap"><table><thead><tr><th>NIK KTP</th><th>Nama</th><th>Status Kerja</th><th>BPJS Kesehatan</th><th>BPJS Ketenagakerjaan</th></tr></thead><tbody id="dash-bpjs-body"><tr><td colspan="5">Memuat...</td></tr></tbody></table></div>
         </div>
@@ -347,7 +358,7 @@
 
         <div class="sub-tabs">
           <button id="stab-harian" class="sub-tab active" onclick="switchPresTab('harian')">Presensi Harian</button>
-          <button id="stab-bulanan" class="sub-tab" onclick="switchPresTab('bulanan')">Rekap Bulanan (Siap Gajian)</button>
+          <button id="stab-bulanan" class="sub-tab" data-feature="people_rekap_bulanan" onclick="switchPresTab('bulanan')">Rekap Bulanan (Siap Gajian)</button>
         </div>
 
         <div id="pres-harian">
@@ -431,10 +442,10 @@
           <button class="btn-outline" onclick="exportMasterEmpCSV()">⬇ Export Biodata Lengkap (CSV)</button>
         </div>
 
-        <div class="card" style="border-left: 4px solid var(--primary);">
+        <div class="card" data-feature="people_import_csv" style="border-left: 4px solid var(--primary);">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
             <div>
-              <strong style="font-size:15px;">Import Massal 200 Karyawan (CSV)</strong>
+              <strong style="font-size:15px;">Import Massal Karyawan (CSV)</strong>
               <div style="font-size:12px; color:var(--muted); margin-top:2px;">Sekali upload: Biodata (KTP, KK, Alamat, HP, Bank, Rekening) + PIN otomatis 6 digit akhir NIK + Kontrol BPJS (JKN & KPJ).</div>
             </div>
             <button class="btn-outline" onclick="downloadEmpTemplate()">⬇ Download Template CSV Lengkap</button>
@@ -479,13 +490,13 @@
       </section>
 
       <section id="page-loc" class="hidden">
-        <div class="page-head"><div><div class="page-kicker">06 — GEOFENCING</div><div class="page-title">LOKASI 6 KOTA</div></div></div>
+        <div class="page-head"><div><div class="page-kicker">06 — GEOFENCING</div><div class="page-title">LOKASI PENEMPATAN</div></div></div>
         <div class="card">
           <div style="font-weight:800; margin-bottom:12px;">+ Tambah Lokasi</div>
           <form onsubmit="addLocation(event)" class="grid-2">
             <div><label>Kode Lokasi (Dipakai di CSV)</label><input id="l-kode" placeholder="MJK-01" required /></div>
-            <div><label>Nama Lokasi</label><input id="l-nama" placeholder="Kejari Mojokerto" required /></div>
-            <div><label>Kota</label><input id="l-kota" placeholder="Mojokerto" required /></div>
+            <div><label>Nama Lokasi</label><input id="l-nama" placeholder="Nama Kantor / Site" required /></div>
+            <div><label>Kota</label><input id="l-kota" placeholder="Nama Kota" required /></div>
             <div><label>Latitude</label><input id="l-lat" type="number" step="any" placeholder="-7.4726" required /></div>
             <div><label>Longitude</label><input id="l-lng" type="number" step="any" placeholder="112.4341" required /></div>
             <div><label>Radius (Meter)</label><input id="l-rad" type="number" value="100" required /></div>
@@ -496,15 +507,17 @@
       </section>
 
       <section id="page-set" class="hidden">
-        <div class="page-head"><div><div class="page-kicker">07 — WHITE-LABEL</div><div class="page-title">PENGATURAN</div></div></div>
-        <div class="card" style="max-width:600px;">
+        <div class="page-head"><div><div class="page-kicker">07 — WHITE-LABEL & INTEGRASI</div><div class="page-title">PENGATURAN PERUSAHAAN</div></div></div>
+        <div class="card" style="max-width:620px;">
           <form onsubmit="saveSettings(event)">
             <div class="form-group"><label>Nama Perusahaan</label><input id="s-comp" required /></div>
             <div class="form-group"><label>Sub-Judul</label><input id="s-sub" required /></div>
+            <div class="form-group"><label>URL Logo Perusahaan (Opsional)</label><input id="s-logo" placeholder="https://.../logo.png" /></div>
             <div class="form-group"><label>Warna Aksen</label><input id="s-col" type="color" style="height:44px; padding:4px;" /></div>
             <div class="form-group"><label>Link Kurir Foto Google Drive</label><input id="s-drv" placeholder="https://script.google.com/macros/s/.../exec" /></div>
+            <div class="form-group"><label>Kunci Rahasia Kurir Foto (Drive Secret)</label><input id="s-drv-sec" placeholder="Kunci rahasia Apps Script klien ini" /></div>
             <div class="form-group">
-              <label>Nomor WA Admin untuk Bantuan & Lapor Kendala (White-Label)</label>
+              <label>Nomor WA Admin untuk Bantuan & Lapor Kendala</label>
               <input id="s-wa" placeholder="Contoh: 6281234567890 (Kosongkan untuk sembunyikan link WA)" />
             </div>
             <button type="submit" class="btn-primary">Simpan Pengaturan</button>
@@ -525,10 +538,24 @@
   var publicAdminWa = '';
   var faceApiPromise = null;
   var FACE_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+
+  // State Multi-Tenant Veropsa
+  var tenantContext = { slug: null, domain: null };
+  var activeCompany = null;
+  var activeFeatures = {};
+  var availableCompanies = [];
+  var isSuperAdmin = false;
   var hrCache = { employees: [], locations: [], bpjs: [], attendance: [], requests: [], monthlyRaw: [], monthlySummary: [] };
+
+  var PAGE_FEATURE_MAP = {
+    pres: 'people_presensi',
+    req: 'people_pengajuan',
+    bpjs: 'people_bpjs'
+  };
 
   window.onload = function() {
     if (localStorage.getItem('hris_dark') === '1') document.body.classList.add('dark');
+    detectTenant();
     var today = getTodayWIB();
     document.getElementById('filter-date').value = today;
     document.getElementById('filter-month').value = today.slice(0, 7);
@@ -543,6 +570,25 @@
     else setLoginMode('emp');
   };
 
+  function detectTenant() {
+    var params = new URLSearchParams(window.location.search);
+    var slugParam = (params.get('c') || '').trim().toLowerCase();
+    var host = (window.location.hostname || '').toLowerCase();
+    tenantContext.slug = slugParam || null;
+    tenantContext.domain = (host && host !== 'localhost' && host !== '127.0.0.1' && host.indexOf('.vercel.app') === -1) ? host : null;
+  }
+
+  function hasFeature(key) {
+    return !!(activeFeatures && activeFeatures[key] === true);
+  }
+
+  function applyFeatureVisibility() {
+    document.querySelectorAll('[data-feature]').forEach(function(el) {
+      var key = el.getAttribute('data-feature');
+      el.classList.toggle('hidden', !hasFeature(key));
+    });
+  }
+
   function getTodayWIB() { return new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10); }
   function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function openModal(html) { document.getElementById('modal-body').innerHTML = html; document.getElementById('modal-bg').classList.remove('hidden'); }
@@ -554,12 +600,22 @@
     return wa;
   }
 
-  function applyBranding(b) {
-    if (!b || !b.company_name) return;
+  function applyBranding(b, customWhiteLabel) {
+    if (!b) return;
     if (b.primary_color) document.documentElement.style.setProperty('--primary', b.primary_color);
-    document.title = 'Presensi — ' + b.company_name;
-    ['login-company','emp-company','hr-company','hr-mobile-title'].forEach(function(id){ document.getElementById(id).textContent = b.company_name; });
-    document.getElementById('hr-sub').textContent = b.app_subtitle || 'Human Resource & Operations';
+    var compName = b.company_name || 'PORTAL PRESENSI';
+    document.title = 'Presensi — ' + compName;
+    ['login-company','emp-company','hr-company','hr-mobile-title'].forEach(function(id){ document.getElementById(id).textContent = compName; });
+    document.getElementById('hr-sub').textContent = b.app_subtitle || 'Veropsa People';
+    document.getElementById('hr-brand-kicker').textContent = customWhiteLabel ? 'PORTAL HRIS' : 'VEROPSA PEOPLE';
+
+    var logoUrl = (b.logo_url || '').trim();
+    ['login-logo','emp-logo','hr-logo'].forEach(function(id){
+      var img = document.getElementById(id);
+      if (logoUrl) { img.src = logoUrl; img.classList.remove('hidden'); }
+      else { img.classList.add('hidden'); }
+    });
+
     if (b.admin_wa !== undefined) {
       publicAdminWa = formatWaNumber(b.admin_wa);
       document.getElementById('login-help-wa').classList.toggle('hidden', publicAdminWa.length < 9);
@@ -567,14 +623,29 @@
   }
 
   function loadBranding() {
-    sb.rpc('hris_get_public_branding').then(function(r) { if (r.data && r.data.company_name) applyBranding(r.data); });
+    sb.rpc('hris_get_public_branding', {
+      p_slug: tenantContext.slug,
+      p_domain: tenantContext.domain
+    }).then(function(r) {
+      if (r.data && r.data.ok) {
+        if (!tenantContext.slug && r.data.slug) tenantContext.slug = r.data.slug;
+        applyBranding(r.data, r.data.custom_whitelabel);
+        if (r.data.status !== 'ACTIVE') {
+          showLoginErr('Portal perusahaan ini sedang dinonaktifkan.');
+        }
+      }
+    });
+  }
+
+  function getEmpStorageKey() {
+    return 'hris_emp_cred_' + (tenantContext.slug || 'default');
   }
 
   function checkExistingSession() {
     sb.auth.getSession().then(function(res) {
-      if (res.data && res.data.session) { openHrDashboard(res.data.session.user.email); return; }
+      if (res.data && res.data.session) { openHrDashboard(res.data.session.user); return; }
       if (window.location.hash === '#admin') return;
-      var saved = localStorage.getItem('hris_emp_cred');
+      var saved = localStorage.getItem(getEmpStorageKey()) || localStorage.getItem('hris_emp_cred');
       if (saved) { try { var c = JSON.parse(saved); callEmpLogin(c.nik, c.pin, true); } catch(e){} }
     });
   }
@@ -627,7 +698,7 @@
 
   function verifyFaceOnCanvas(canvas) {
     var emp = empSession && empSession.data && empSession.data.employee;
-    if (!emp || emp.face_rec_enabled === false) {
+    if (!hasFeature('people_face_rec') || !emp || emp.face_rec_enabled === false) {
       return Promise.resolve({ status: 'DISABLED', distance: null, newDescriptor: null });
     }
     var timeoutP = new Promise(function(resolve) {
@@ -690,40 +761,52 @@
   function callEmpLogin(nik, pin, silent) {
     var btn = document.getElementById('btn-emp-login');
     if (!silent) { btn.disabled = true; btn.textContent = 'Memeriksa...'; }
-    sb.rpc('hris_emp_login', { p_nik: nik, p_pin: pin }).then(function(res) {
+    sb.rpc('hris_emp_login', {
+      p_nik: nik, p_pin: pin,
+      p_company_slug: tenantContext.slug,
+      p_domain: tenantContext.domain
+    }).then(function(res) {
       if (!silent) { btn.disabled = false; btn.textContent = 'MASUK'; }
       var d = res.data;
       if (res.error || !d || !d.ok) {
         if (!silent) showLoginErr(d && d.message ? d.message : 'NIK atau PIN salah.');
         return;
       }
-      localStorage.setItem('hris_emp_cred', JSON.stringify({ nik: nik, pin: pin }));
+      if (d.company && d.company.slug) tenantContext.slug = d.company.slug;
+      activeFeatures = d.features || {};
+      localStorage.setItem(getEmpStorageKey(), JSON.stringify({ nik: nik, pin: pin }));
       empSession = { data: d, nik: nik, pin: pin };
-      applyBranding(d.settings);
+      applyBranding(d.settings, hasFeature('custom_whitelabel'));
       document.getElementById('view-login').classList.add('hidden');
       document.getElementById('view-emp').classList.remove('hidden');
       document.getElementById('emp-name').textContent = d.employee.nama_lengkap;
 
       var locs = d.allowed_locations || [];
-      if (d.employee.allow_all_locations) {
+      if (hasFeature('people_multi_lokasi') && d.employee.allow_all_locations) {
         document.getElementById('emp-loc-label').textContent = 'Penempatan: Semua Lokasi Kantor (Rolling)';
       } else if (d.location) {
-        var extraCount = Math.max(0, locs.length - 1);
+        var extraCount = hasFeature('people_multi_lokasi') ? Math.max(0, locs.length - 1) : 0;
         document.getElementById('emp-loc-label').textContent = 'Penempatan: ' + d.location.nama_lokasi + ' (' + d.location.kota + ')' + (extraCount > 0 ? ' + ' + extraCount + ' lokasi lain' : '');
       } else {
         document.getElementById('emp-loc-label').textContent = 'Penempatan: Belum diatur HR';
       }
 
+      document.getElementById('btn-menu-req').classList.toggle('hidden', !hasFeature('people_pengajuan'));
+      if (!hasFeature('people_pengajuan')) {
+        document.getElementById('box-req-form').classList.add('hidden');
+        document.getElementById('box-req-hist').classList.add('hidden');
+      }
+
       var wa = formatWaNumber(d.settings && d.settings.admin_wa);
       document.getElementById('btn-wa-admin').classList.toggle('hidden', wa.length < 9);
 
-      if (d.employee.face_rec_enabled !== false) {
+      if (hasFeature('people_face_rec') && d.employee.face_rec_enabled !== false) {
         setTimeout(function(){ ensureFaceModels().catch(function(){}); }, 1500);
       }
 
       updateEmpButtons();
       renderEmpHistory(d.recent_attendance || []);
-      renderEmpReqHistory(d.recent_requests || []);
+      if (hasFeature('people_pengajuan')) renderEmpReqHistory(d.recent_requests || []);
       startClock();
       startLiveGPS();
     });
@@ -762,11 +845,14 @@
 
     var btn = document.getElementById('btn-pin-save');
     btn.disabled = true; btn.textContent = 'Menyimpan...';
-    sb.rpc('hris_emp_change_pin', { p_nik: empSession.nik, p_old_pin: oldP, p_new_pin: newP }).then(function(res) {
+    sb.rpc('hris_emp_change_pin', {
+      p_nik: empSession.nik, p_old_pin: oldP, p_new_pin: newP,
+      p_company_slug: tenantContext.slug, p_domain: tenantContext.domain
+    }).then(function(res) {
       btn.disabled = false; btn.textContent = 'SIMPAN PIN BARU';
       if (res.error || !res.data || !res.data.ok) { showEmpMsg(res.data ? res.data.message : 'Gagal ganti PIN.', false); return; }
       empSession.pin = newP;
-      localStorage.setItem('hris_emp_cred', JSON.stringify({ nik: empSession.nik, pin: newP }));
+      localStorage.setItem(getEmpStorageKey(), JSON.stringify({ nik: empSession.nik, pin: newP }));
       e.target.reset();
       document.getElementById('box-pin-form').classList.add('hidden');
       showEmpMsg('PIN berhasil diganti! Gunakan PIN baru untuk login berikutnya.', true);
@@ -788,8 +874,9 @@
     }
 
     var isOutside = currentGPS && !currentGPS.inRadius;
+    var allowDL = hasFeature('people_dinas_luar');
     document.getElementById('box-normal').classList.toggle('hidden', !!isOutside);
-    document.getElementById('box-dinas-luar').classList.toggle('hidden', !isOutside);
+    document.getElementById('box-dinas-luar').classList.toggle('hidden', !(isOutside && allowDL));
     document.getElementById('btn-masuk').classList.toggle('hidden', !!active);
     document.getElementById('btn-pulang').classList.toggle('hidden', !active);
     document.getElementById('btn-dl-masuk').classList.toggle('hidden', !!active);
@@ -822,6 +909,7 @@
 
   function submitEmpRequest(e) {
     e.preventDefault();
+    if (!hasFeature('people_pengajuan')) { showEmpMsg('Fitur pengajuan tidak aktif.', false); return; }
     var btn = document.getElementById('btn-req-send');
     var jenis = document.getElementById('req-jenis').value;
     var tgl = document.getElementById('req-tgl').value;
@@ -833,7 +921,8 @@
     function sendRpc(fotoUrl) {
       sb.rpc('hris_emp_submit_request', {
         p_nik: empSession.nik, p_pin: empSession.pin, p_jenis: jenis,
-        p_tanggal: tgl, p_jam: jam, p_alasan: alasan, p_foto_url: fotoUrl
+        p_tanggal: tgl, p_jam: jam, p_alasan: alasan, p_foto_url: fotoUrl,
+        p_company_slug: tenantContext.slug, p_domain: tenantContext.domain
       }).then(function(res) {
         btn.disabled = false; btn.textContent = 'KIRIM PENGAJUAN';
         if (res.error || !res.data || !res.data.ok) { showEmpMsg(res.data ? res.data.message : 'Gagal kirim pengajuan.', false); return; }
@@ -846,10 +935,11 @@
     }
 
     var webhook = empSession.data.settings ? empSession.data.settings.drive_webhook_url : '';
+    var secret = empSession.data.settings ? empSession.data.settings.drive_secret : '';
     if (fileInp.files && fileInp.files[0] && webhook && webhook.indexOf('script.google.com') !== -1) {
       fileToCanvas(fileInp.files[0], function(canvas) {
         var base64 = canvas.toDataURL('image/jpeg', 0.65);
-        uploadDrive(webhook, { secret: DRIVE_SECRET, lokasi: 'IZIN_SAKIT', tipe: 'MASUK', namaKaryawan: empSession.data.employee.nama_lengkap + '_' + jenis, imageBase64: base64 }, 1, function(err, url){ sendRpc(err ? '' : url); });
+        uploadDrive(webhook, { secret: secret, lokasi: 'IZIN_SAKIT', tipe: 'MASUK', namaKaryawan: empSession.data.employee.nama_lengkap + '_' + jenis, imageBase64: base64 }, 1, function(err, url){ sendRpc(err ? '' : url); });
       });
     } else sendRpc('');
   }
@@ -921,7 +1011,9 @@
       lastGpsStatus = 'Di luar area tugas';
       box.className = 'gps-box gps-err';
       title.textContent = 'Di Luar Area Tugas';
-      desc.textContent = 'Presensi kantor tidak tersedia. Gunakan MENU DINAS LUAR di bawah.';
+      desc.textContent = hasFeature('people_dinas_luar')
+        ? 'Presensi kantor tidak tersedia. Gunakan MENU DINAS LUAR di bawah.'
+        : 'Anda berada di luar area tugas. Harap masuk ke area kantor untuk presensi.';
     }
     updateEmpButtons();
   }
@@ -962,7 +1054,8 @@
   function startPresensi(tipe, isDinasLuar) {
     document.getElementById('emp-msg').classList.add('hidden');
     if (!currentGPS) { showEmpMsg('Aktifkan GPS di atas terlebih dahulu.', false); return; }
-    if (!isDinasLuar && !currentGPS.inRadius) { showEmpMsg('DITOLAK: Di luar lokasi tugas. Wajib pakai DINAS LUAR.', false); updateEmpButtons(); return; }
+    if (isDinasLuar && !hasFeature('people_dinas_luar')) { showEmpMsg('Fitur Dinas Luar tidak aktif.', false); return; }
+    if (!isDinasLuar && !currentGPS.inRadius) { showEmpMsg('DITOLAK: Di luar lokasi tugas.', false); updateEmpButtons(); return; }
     if (isDinasLuar && !document.getElementById('dl-ket').value.trim()) { showEmpMsg('Isi tujuan Dinas Luar dulu.', false); return; }
     pendingType = tipe; pendingIsDL = isDinasLuar;
     var inp = document.getElementById('camera-input'); inp.value = ''; inp.click();
@@ -1000,7 +1093,7 @@
 
   function onPhotoCaptured(e) {
     var file = e.target.files[0]; if (!file) return;
-    var faceOn = empSession.data.employee && empSession.data.employee.face_rec_enabled !== false;
+    var faceOn = hasFeature('people_face_rec') && empSession.data.employee && empSession.data.employee.face_rec_enabled !== false;
     showEmpMsg(faceOn ? 'Memverifikasi foto & menyimpan presensi... Mohon tunggu.' : 'Menyimpan foto & presensi... Mohon tunggu.', true);
     ['btn-masuk','btn-pulang','btn-dl-masuk','btn-dl-pulang'].forEach(function(id){ document.getElementById(id).disabled = true; });
 
@@ -1010,9 +1103,12 @@
         var locName = pendingIsDL ? 'DINAS_LUAR' : (actualLoc ? actualLoc.nama_lokasi : 'Tanpa_Lokasi');
         var wmLoc = pendingIsDL ? ('DINAS LUAR: ' + document.getElementById('dl-ket').value.trim()) : (actualLoc ? (actualLoc.nama_lokasi + ' (' + actualLoc.kota + ')') : 'GPS Terverifikasi');
 
-        drawWatermarkOnCanvas(canvas, empSession.data.employee.nama_lengkap, wmLoc, pendingType);
+        if (hasFeature('people_watermark_foto')) {
+          drawWatermarkOnCanvas(canvas, empSession.data.employee.nama_lengkap, wmLoc, pendingType);
+        }
         var base64 = canvas.toDataURL('image/jpeg', 0.68);
         var webhook = empSession.data.settings ? empSession.data.settings.drive_webhook_url : '';
+        var secret = empSession.data.settings ? empSession.data.settings.drive_secret : '';
         var ket = pendingIsDL ? ('[DINAS LUAR] ' + document.getElementById('dl-ket').value.trim()) : '';
 
         function saveDb(fotoUrl) {
@@ -1023,7 +1119,9 @@
             p_location_id: (!pendingIsDL && currentGPS.matchedLoc) ? currentGPS.matchedLoc.id : null,
             p_face_status: faceRes.status,
             p_face_distance: faceRes.distance,
-            p_new_descriptor: faceRes.newDescriptor || null
+            p_new_descriptor: faceRes.newDescriptor || null,
+            p_company_slug: tenantContext.slug,
+            p_domain: tenantContext.domain
           }).then(function(res) {
             var d = res.data;
             if (res.error || !d || !d.ok) { showEmpMsg(d && d.message ? d.message : 'Gagal simpan presensi', false); updateEmpButtons(); return; }
@@ -1035,7 +1133,7 @@
         }
 
         if (webhook && webhook.indexOf('script.google.com') !== -1) {
-          uploadDrive(webhook, { secret: DRIVE_SECRET, lokasi: locName, tipe: pendingType, namaKaryawan: empSession.data.employee.nama_lengkap, imageBase64: base64 }, 1, function(err, url){ saveDb(err ? '' : url); });
+          uploadDrive(webhook, { secret: secret, lokasi: locName, tipe: pendingType, namaKaryawan: empSession.data.employee.nama_lengkap, imageBase64: base64 }, 1, function(err, url){ saveDb(err ? '' : url); });
         } else saveDb('');
       });
     });
@@ -1044,29 +1142,99 @@
   function logoutEmp() {
     if (!confirm('Yakin keluar akun? Nanti Anda harus memasukkan NIK KTP & PIN lagi untuk masuk.')) return;
     if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
+    localStorage.removeItem(getEmpStorageKey());
     localStorage.removeItem('hris_emp_cred');
     location.reload();
   }
 
-  // ===== HR DASHBOARD =====
+  // ===== HR DASHBOARD (MULTI-TENANT) =====
   function handleHrLogin(e) {
     e.preventDefault();
     var btn = document.getElementById('btn-hr-login'); btn.disabled = true; btn.textContent = 'Memeriksa...';
     sb.auth.signInWithPassword({ email: document.getElementById('hr-email').value.trim(), password: document.getElementById('hr-pass').value }).then(function(res) {
       btn.disabled = false; btn.textContent = 'MASUK DASHBOARD HR';
       if (res.error) { showLoginErr(res.error.message); return; }
-      openHrDashboard(res.data.user.email);
+      openHrDashboard(res.data.user);
     });
   }
 
-  function openHrDashboard(email) {
-    document.getElementById('view-login').classList.add('hidden');
-    document.getElementById('view-hr').classList.remove('hidden');
-    document.getElementById('hr-user-email').textContent = email;
+  function openHrDashboard(user) {
+    document.getElementById('hr-user-email').textContent = user.email;
+    sb.from('user_roles').select('role, company_id').eq('user_id', user.id).then(function(r) {
+      var roles = r.data || [];
+      if (!roles.length) {
+        showLoginErr('Akun Anda belum terhubung ke perusahaan mana pun.');
+        sb.auth.signOut();
+        return;
+      }
+      isSuperAdmin = roles.some(function(x){ return x.role === 'superadmin'; });
+      sb.from('companies').select('*').order('created_at', { ascending: true }).then(function(cRes) {
+        availableCompanies = cRes.data || [];
+        if (!availableCompanies.length) {
+          showLoginErr('Data perusahaan tidak ditemukan.');
+          return;
+        }
+        var picked = null;
+        if (tenantContext.slug) {
+          picked = availableCompanies.find(function(c){ return c.slug === tenantContext.slug; });
+        }
+        if (!picked) {
+          var myFirstCompId = roles[0].company_id;
+          picked = availableCompanies.find(function(c){ return c.id === myFirstCompId; }) || availableCompanies[0];
+        }
+
+        if (isSuperAdmin && availableCompanies.length > 0) {
+          var sw = document.getElementById('tenant-switcher');
+          var sel = document.getElementById('tenant-select');
+          sel.innerHTML = availableCompanies.map(function(c){
+            var nm = (c.branding && c.branding.company_name) ? c.branding.company_name : c.slug;
+            return '<option value="' + c.id + '">' + esc(nm) + ' (' + esc(c.slug) + ')</option>';
+          }).join('');
+          sel.value = picked.id;
+          sw.classList.remove('hidden');
+        }
+
+        document.getElementById('view-login').classList.add('hidden');
+        document.getElementById('view-hr').classList.remove('hidden');
+        setActiveCompany(picked);
+      });
+    });
+  }
+
+  function switchActiveTenant(compId) {
+    var comp = availableCompanies.find(function(c){ return c.id === compId; });
+    if (!comp) return;
+    setActiveCompany(comp);
+  }
+
+  function setActiveCompany(comp) {
+    activeCompany = comp;
+    activeFeatures = comp.features || {};
+    tenantContext.slug = comp.slug;
+    applyBranding(comp.branding || {}, hasFeature('custom_whitelabel'));
+    applyFeatureVisibility();
+    showHrPage('dash', document.getElementById('nav-dash'));
+
+    var b = comp.branding || {}, integ = comp.integrations || {};
+    document.getElementById('s-comp').value = b.company_name || '';
+    document.getElementById('s-sub').value = b.app_subtitle || '';
+    document.getElementById('s-logo').value = b.logo_url || '';
+    document.getElementById('s-col').value = b.primary_color || '#EA580C';
+    document.getElementById('s-drv').value = integ.people_drive_webhook || '';
+    document.getElementById('s-drv-sec').value = integ.people_drive_secret || '';
+    document.getElementById('s-wa').value = b.admin_wa || '';
+
     loadHrData();
   }
 
+  // Proteksi Lapis 2: Blokir akses langsung ke halaman jika feature flag-nya false
   function showHrPage(id, btn) {
+    var reqFlag = PAGE_FEATURE_MAP[id];
+    if (reqFlag && !hasFeature(reqFlag)) {
+      alert('Modul ini belum diaktifkan untuk perusahaan Anda.');
+      id = 'dash';
+      btn = document.getElementById('nav-dash');
+    }
     ['dash','pres','req','bpjs','emp','loc','set'].forEach(function(p){ document.getElementById('page-' + p).classList.toggle('hidden', p !== id); });
     document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
@@ -1074,6 +1242,10 @@
   }
 
   function switchPresTab(tab) {
+    if (tab === 'bulanan' && !hasFeature('people_rekap_bulanan')) {
+      alert('Fitur Rekap Bulanan belum aktif untuk perusahaan Anda.');
+      return;
+    }
     document.getElementById('stab-harian').classList.toggle('active', tab === 'harian');
     document.getElementById('stab-bulanan').classList.toggle('active', tab === 'bulanan');
     document.getElementById('pres-harian').classList.toggle('hidden', tab !== 'harian');
@@ -1085,24 +1257,18 @@
   function logoutHr() { sb.auth.signOut().then(function(){ location.reload(); }); }
 
   function loadHrData() {
+    if (!activeCompany) return;
+    var cid = activeCompany.id;
     Promise.all([
-      sb.from('hris_settings').select('*').eq('id', 1).single(),
-      sb.from('hris_locations').select('*').order('kota'),
-      sb.from('hris_employees').select('*, hris_locations(nama_lokasi, kota)').order('nama_lengkap'),
-      sb.from('hris_bpjs').select('*, hris_employees(id, nik_karyawan, nama_lengkap, nik_ktp, no_kk, status_kerja, location_id)'),
-      sb.from('hris_requests').select('*, hris_employees(nik_karyawan, nama_lengkap)').order('created_at', { ascending: false })
+      sb.from('hris_locations').select('*').eq('company_id', cid).order('kota'),
+      sb.from('hris_employees').select('*, hris_locations(nama_lokasi, kota)').eq('company_id', cid).order('nama_lengkap'),
+      sb.from('hris_bpjs').select('*, hris_employees(id, nik_karyawan, nama_lengkap, nik_ktp, no_kk, status_kerja, location_id)').eq('company_id', cid),
+      sb.from('hris_requests').select('*, hris_employees(nik_karyawan, nama_lengkap)').eq('company_id', cid).order('created_at', { ascending: false })
     ]).then(function(r) {
-      var s = r[0].data;
-      if (s) {
-        applyBranding(s);
-        document.getElementById('s-comp').value = s.company_name || '';
-        document.getElementById('s-sub').value = s.app_subtitle || '';
-        document.getElementById('s-col').value = s.primary_color || '#EA580C';
-        document.getElementById('s-drv').value = s.drive_webhook_url || '';
-        document.getElementById('s-wa').value = s.admin_wa || '';
-      }
-      hrCache.locations = r[1].data || []; hrCache.employees = r[2].data || [];
-      hrCache.bpjs = r[3].data || []; hrCache.requests = r[4].data || [];
+      hrCache.locations = r[0].data || [];
+      hrCache.employees = r[1].data || [];
+      hrCache.bpjs = r[2].data || [];
+      hrCache.requests = r[3].data || [];
       renderLocations(); renderEmployees(); renderBpjs(); renderRequests(); loadAttendance();
     });
   }
@@ -1146,8 +1312,9 @@
   }
 
   function loadAttendance() {
+    if (!activeCompany) return;
     var tgl = document.getElementById('filter-date').value || getTodayWIB();
-    sb.from('hris_attendance').select('*, hris_locations(nama_lokasi), hris_employees(nik_karyawan, nama_lengkap, location_id, hris_locations(nama_lokasi))').eq('tanggal', tgl).order('created_at', { ascending: false }).then(function(res) {
+    sb.from('hris_attendance').select('*, hris_locations(nama_lokasi), hris_employees(nik_karyawan, nama_lengkap, location_id, hris_locations(nama_lokasi))').eq('company_id', activeCompany.id).eq('tanggal', tgl).order('created_at', { ascending: false }).then(function(res) {
       hrCache.attendance = res.data || [];
       if (tgl === getTodayWIB()) document.getElementById('k-hadir').textContent = hrCache.attendance.length;
       renderAttendanceTable();
@@ -1174,12 +1341,13 @@
   }
 
   function loadMonthlyRecap() {
+    if (!activeCompany || !hasFeature('people_rekap_bulanan')) return;
     var ym = document.getElementById('filter-month').value || getTodayWIB().slice(0, 7);
     var parts = ym.split('-');
     var lastDay = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
     var startDate = ym + '-01', endDate = ym + '-' + String(lastDay).padStart(2, '0');
     document.getElementById('recap-body').innerHTML = '<tr><td colspan="9">Menghitung rekap bulan ' + ym + '...</td></tr>';
-    sb.from('hris_attendance').select('employee_id, tanggal, jam_masuk, jam_pulang, status').gte('tanggal', startDate).lte('tanggal', endDate).then(function(res) {
+    sb.from('hris_attendance').select('employee_id, tanggal, jam_masuk, jam_pulang, status').eq('company_id', activeCompany.id).gte('tanggal', startDate).lte('tanggal', endDate).then(function(res) {
       hrCache.monthlyRaw = res.data || [];
       renderMonthlyRecap();
     });
@@ -1221,9 +1389,11 @@
       var match = !q || (e.nama_lengkap || '').toLowerCase().indexOf(q) !== -1 || (e.nik_ktp || '').indexOf(q) !== -1 || (e.no_hp || '').indexOf(q) !== -1;
       if (!match) return;
       var loc = e.hris_locations ? (e.hris_locations.nama_lokasi + ' (' + e.hris_locations.kota + ')') : '-';
-      if (e.allow_all_locations) loc += ' <span class="badge b-blue">SEMUA LOKASI</span>';
-      else if (e.extra_location_ids && e.extra_location_ids.length) loc += ' <span class="badge b-orange">+' + e.extra_location_ids.length + ' lokasi</span>';
-      var faceTag = e.face_rec_enabled === false ? '<span class="badge b-gray">Face OFF</span>' : '';
+      if (hasFeature('people_multi_lokasi')) {
+        if (e.allow_all_locations) loc += ' <span class="badge b-blue">SEMUA LOKASI</span>';
+        else if (e.extra_location_ids && e.extra_location_ids.length) loc += ' <span class="badge b-orange">+' + e.extra_location_ids.length + ' lokasi</span>';
+      }
+      var faceTag = (hasFeature('people_face_rec') && e.face_rec_enabled === false) ? '<span class="badge b-gray">Face OFF</span>' : '';
       var bankInfo = (e.nama_bank || e.no_rekening) ? (esc(e.nama_bank||'-') + '<br><small style="color:var(--muted)">' + esc(e.no_rekening||'-') + '</small>') : '-';
       html += '<tr><td><strong>' + esc(e.nik_ktp || e.nik_karyawan) + '</strong></td>' +
         '<td><strong>' + esc(e.nama_lengkap) + '</strong> ' + faceTag + '<br><small style="color:var(--muted)">' + esc(e.kategori) + (e.jabatan ? ' • ' + esc(e.jabatan) : '') + '</small></td>' +
@@ -1250,6 +1420,26 @@
     if (typeof fd === 'string') { try { fd = JSON.parse(fd); } catch(err) { fd = null; } }
     var faceReady = !!(fd && Array.isArray(fd) && fd.length === 128);
 
+    var faceBoxHtml = hasFeature('people_face_rec') ? (
+      '<div class="chk-box">' +
+        '<label style="margin-bottom:8px;">Verifikasi Wajah (Face Recognition)</label>' +
+        '<label class="chk-row"><input type="checkbox" id="me-face-on" ' + (e.face_rec_enabled!==false?'checked':'') + ' /> Aktifkan verifikasi wajah (Matikan jika HP karyawan jadul/lemot)</label>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--muted);">' +
+          '<span>Data Wajah: <b>' + (faceReady ? 'Sudah terekam otomatis' : 'Belum terekam (otomatis saat selfie pertama)') + '</b></span>' +
+          (faceReady ? '<button type="button" class="btn-outline" onclick="resetEmpFace(\'' + e.id + '\')">↻ Reset Wajah</button>' : '') +
+        '</div>' +
+      '</div>'
+    ) : '';
+
+    var multiLocBoxHtml = hasFeature('people_multi_lokasi') ? (
+      '<div class="chk-box">' +
+        '<label style="margin-bottom:8px;">Akses Multi-Lokasi (Untuk Pekerja Rolling / Pindah-Pindah)</label>' +
+        '<label class="chk-row" style="color:var(--blue);"><input type="checkbox" id="me-all-loc" ' + (e.allow_all_locations?'checked':'') + ' /> Boleh presensi di SEMUA lokasi kantor</label>' +
+        '<div style="font-size:11px;color:var(--muted);margin:8px 0 6px;">Atau pilih lokasi tambahan tertentu:</div>' +
+        '<div style="max-height:130px;overflow-y:auto;">' + (extraChks || '<small>Belum ada lokasi.</small>') + '</div>' +
+      '</div>'
+    ) : '';
+
     openModal(
       '<div class="modal-head"><h3>Biodata & Pengaturan Karyawan</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
       '<form onsubmit="saveEmpModal(event,\'' + e.id + '\')">' +
@@ -1268,20 +1458,7 @@
         '<div class="form-group"><label>Status Kerja</label><select id="me-st"><option value="AKTIF" ' + (e.status_kerja==='AKTIF'?'selected':'') + '>AKTIF</option><option value="RESIGN" ' + (e.status_kerja==='RESIGN'?'selected':'') + '>RESIGN</option><option value="HABIS_KONTRAK" ' + (e.status_kerja==='HABIS_KONTRAK'?'selected':'') + '>HABIS_KONTRAK</option></select></div>' +
       '</div>' +
       '<div class="form-group"><label>Alamat Lengkap</label><input id="me-alamat" value="' + esc(e.alamat||'') + '" /></div>' +
-      '<div class="chk-box">' +
-        '<label style="margin-bottom:8px;">Verifikasi Wajah (Face Recognition)</label>' +
-        '<label class="chk-row"><input type="checkbox" id="me-face-on" ' + (e.face_rec_enabled!==false?'checked':'') + ' /> Aktifkan verifikasi wajah (Matikan jika HP karyawan jadul/lemot)</label>' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--muted);">' +
-          '<span>Data Wajah: <b>' + (faceReady ? 'Sudah terekam otomatis' : 'Belum terekam (otomatis saat selfie pertama)') + '</b></span>' +
-          (faceReady ? '<button type="button" class="btn-outline" onclick="resetEmpFace(\'' + e.id + '\')">↻ Reset Wajah</button>' : '') +
-        '</div>' +
-      '</div>' +
-      '<div class="chk-box">' +
-        '<label style="margin-bottom:8px;">Akses Multi-Lokasi (Untuk Pekerja Rolling / Pindah-Pindah)</label>' +
-        '<label class="chk-row" style="color:var(--blue);"><input type="checkbox" id="me-all-loc" ' + (e.allow_all_locations?'checked':'') + ' /> Boleh presensi di SEMUA lokasi kantor</label>' +
-        '<div style="font-size:11px;color:var(--muted);margin:8px 0 6px;">Atau pilih lokasi tambahan tertentu:</div>' +
-        '<div style="max-height:130px;overflow-y:auto;">' + (extraChks || '<small>Belum ada lokasi.</small>') + '</div>' +
-      '</div>' +
+      faceBoxHtml + multiLocBoxHtml +
       '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">' +
         '<button type="button" class="btn-outline" onclick="resetEmpPin(\'' + e.id + '\',\'' + esc(e.nik_ktp||e.nik_karyawan) + '\')">↻ Reset PIN ke 6 Digit Akhir NIK</button>' +
         '<button type="submit" class="btn-dark">Simpan Perubahan</button>' +
@@ -1293,11 +1470,6 @@
     ev.preventDefault();
     var stBaru = document.getElementById('me-st').value;
     var mainLoc = document.getElementById('me-loc').value || null;
-    var extraIds = [];
-    document.querySelectorAll('.me-extra-loc:checked').forEach(function(cb){
-      if (cb.value && cb.value !== mainLoc) extraIds.push(cb.value);
-    });
-
     var payload = {
       nik_ktp: document.getElementById('me-ktp').value.replace(/\D/g, ''),
       no_kk: document.getElementById('me-kk').value.trim(),
@@ -1306,9 +1478,6 @@
       kategori: document.getElementById('me-kat').value,
       jabatan: document.getElementById('me-jab').value.trim(),
       location_id: mainLoc,
-      face_rec_enabled: document.getElementById('me-face-on').checked,
-      allow_all_locations: document.getElementById('me-all-loc').checked,
-      extra_location_ids: extraIds,
       tanggal_masuk: document.getElementById('me-masuk').value || null,
       nama_bank: document.getElementById('me-bank').value.trim(),
       no_rekening: document.getElementById('me-rek').value.trim(),
@@ -1317,17 +1486,29 @@
       status_kerja: stBaru,
       tanggal_keluar: stBaru !== 'AKTIF' ? getTodayWIB() : null
     };
-    sb.from('hris_employees').update(payload).eq('id', id).then(function(r) {
+    if (hasFeature('people_face_rec')) {
+      payload.face_rec_enabled = document.getElementById('me-face-on').checked;
+    }
+    if (hasFeature('people_multi_lokasi')) {
+      var extraIds = [];
+      document.querySelectorAll('.me-extra-loc:checked').forEach(function(cb){
+        if (cb.value && cb.value !== mainLoc) extraIds.push(cb.value);
+      });
+      payload.allow_all_locations = document.getElementById('me-all-loc').checked;
+      payload.extra_location_ids = extraIds;
+    }
+
+    sb.from('hris_employees').update(payload).eq('id', id).eq('company_id', activeCompany.id).then(function(r) {
       if (r.error) { alert(r.error.message); return; }
-      if (stBaru !== 'AKTIF') {
-        sb.from('hris_bpjs').update({ status_jkn: 'PERLU_NONAKTIF', status_kpj: 'PERLU_NONAKTIF' }).eq('employee_id', id).then(function(){ closeModal(); loadHrData(); });
+      if (stBaru !== 'AKTIF' && hasFeature('people_bpjs')) {
+        sb.from('hris_bpjs').update({ status_jkn: 'PERLU_NONAKTIF', status_kpj: 'PERLU_NONAKTIF' }).eq('employee_id', id).eq('company_id', activeCompany.id).then(function(){ closeModal(); loadHrData(); });
       } else { closeModal(); loadHrData(); }
     });
   }
 
   function resetEmpFace(id) {
     if (!confirm('Hapus data wajah tersimpan? Sistem akan merekam ulang wajah karyawan saat presensi selfie berikutnya.')) return;
-    sb.from('hris_employees').update({ face_descriptor: null }).eq('id', id).then(function(r) {
+    sb.from('hris_employees').update({ face_descriptor: null }).eq('id', id).eq('company_id', activeCompany.id).then(function(r) {
       if (r.error) alert(r.error.message);
       else { alert('Data wajah berhasil direset.'); closeModal(); loadHrData(); }
     });
@@ -1337,7 +1518,7 @@
     var clean = String(nik || '').replace(/\D/g, '');
     var newPin = clean.length >= 6 ? clean.slice(-6) : '123456';
     if (!confirm('Reset PIN karyawan ini kembali ke: ' + newPin + '?')) return;
-    sb.from('hris_employees').update({ pin: newPin, pin_code: newPin }).eq('id', id).then(function(r) {
+    sb.from('hris_employees').update({ pin: newPin, pin_code: newPin }).eq('id', id).eq('company_id', activeCompany.id).then(function(r) {
       if (r.error) alert(r.error.message);
       else { alert('PIN berhasil direset ke: ' + newPin); closeModal(); loadHrData(); }
     });
@@ -1420,7 +1601,7 @@
       no_kpj: document.getElementById('mb-kpj-no').value.trim(),
       catatan_hr: document.getElementById('mb-cat').value.trim(),
       updated_at: new Date().toISOString()
-    }).eq('id', id).then(function(r){
+    }).eq('id', id).eq('company_id', activeCompany.id).then(function(r){
       if (r.error) alert(r.error.message);
       else { closeModal(); loadHrData(); }
     });
@@ -1456,7 +1637,15 @@
 
   function addLocation(e) {
     e.preventDefault();
-    sb.from('hris_locations').insert([{ kode_lokasi: document.getElementById('l-kode').value.trim().toUpperCase(), nama_lokasi: document.getElementById('l-nama').value.trim(), kota: document.getElementById('l-kota').value.trim(), latitude: parseFloat(document.getElementById('l-lat').value), longitude: parseFloat(document.getElementById('l-lng').value), radius_meter: parseInt(document.getElementById('l-rad').value, 10) }]).then(function(r){ if(r.error) alert(r.error.message); else { e.target.reset(); loadHrData(); } });
+    sb.from('hris_locations').insert([{
+      company_id: activeCompany.id,
+      kode_lokasi: document.getElementById('l-kode').value.trim().toUpperCase(),
+      nama_lokasi: document.getElementById('l-nama').value.trim(),
+      kota: document.getElementById('l-kota').value.trim(),
+      latitude: parseFloat(document.getElementById('l-lat').value),
+      longitude: parseFloat(document.getElementById('l-lng').value),
+      radius_meter: parseInt(document.getElementById('l-rad').value, 10)
+    }]).then(function(r){ if(r.error) alert(r.error.message); else { e.target.reset(); loadHrData(); } });
   }
 
   function addEmployee(e) {
@@ -1464,6 +1653,7 @@
     var ktp = document.getElementById('f-ktp').value.replace(/\D/g, '');
     var pin = document.getElementById('f-pin').value.trim() || (ktp.length >= 6 ? ktp.slice(-6) : '123456');
     sb.from('hris_employees').insert([{
+      company_id: activeCompany.id,
       nik_karyawan: ktp, nik_ktp: ktp, no_kk: document.getElementById('f-kk').value.trim(),
       nama_lengkap: document.getElementById('f-nama').value.trim(), kategori: document.getElementById('f-kat').value,
       jabatan: document.getElementById('f-jab').value.trim(), location_id: document.getElementById('f-loc').value || null,
@@ -1472,16 +1662,16 @@
       pin_code: pin, pin: pin
     }]).select().single().then(function(r) {
       if (r.error) { alert(r.error.message); return; }
-      sb.from('hris_bpjs').insert([{ employee_id: r.data.id }]).then(function(){ e.target.reset(); loadHrData(); });
+      sb.from('hris_bpjs').insert([{ company_id: activeCompany.id, employee_id: r.data.id }]).then(function(){ e.target.reset(); loadHrData(); });
     });
   }
 
   function downloadEmpTemplate() {
-    var sampleKode = hrCache.locations.length ? hrCache.locations[0].kode_lokasi : 'MJK-01';
+    var sampleKode = hrCache.locations.length ? hrCache.locations[0].kode_lokasi : 'LOC-01';
     var rows = [
       ['nik_ktp','no_kk','nama_lengkap','kategori','jabatan','kode_lokasi','no_hp','alamat','nama_bank','no_rekening','no_jkn','faskes_tk1','no_kpj'],
-      ['3515012345670001','3515019999990001','Budi Santoso','OS','Security',sampleKode,'081234567890','Jl. Merdeka No 1 Mojokerto','BRI','123401000123501','','',''],
-      ['3515012345670002','3515019999990002','Siti Aminah','INTERNAL','Admin',sampleKode,'081298765432','Perum Indah Blok A','Mandiri','1420012345678','0001234567890','Puskesmas Gedeg','19001234567']
+      ['3515012345670001','3515019999990001','Budi Santoso','OS','Security',sampleKode,'081234567890','Jl. Merdeka No 1','BRI','123401000123501','','',''],
+      ['3515012345670002','3515019999990002','Siti Aminah','INTERNAL','Admin',sampleKode,'081298765432','Perum Indah Blok A','Mandiri','1420012345678','0001234567890','Puskesmas Setempat','19001234567']
     ];
     downloadCSV('template_import_karyawan_lengkap.csv', rows);
   }
@@ -1499,6 +1689,7 @@
   }
 
   function importEmpCSV() {
+    if (!hasFeature('people_import_csv')) { alert('Fitur Import CSV belum aktif.'); return; }
     var file = document.getElementById('csv-file').files[0];
     var st = document.getElementById('import-status');
     if (!file) { st.style.color = 'var(--red)'; st.textContent = 'Pilih file CSV terlebih dahulu.'; return; }
@@ -1532,6 +1723,7 @@
         var keyId = obj.id_karyawan ? obj.id_karyawan.toUpperCase() : nikKtp;
 
         empRows.push({
+          company_id: activeCompany.id,
           nik_karyawan: keyId, nik_ktp: nikKtp, no_kk: (obj.no_kk || '').replace(/[^0-9]/g, ''),
           nama_lengkap: nama, kategori: (obj.kategori || 'OS').toUpperCase() === 'INTERNAL' ? 'INTERNAL' : 'OS',
           jabatan: obj.jabatan || '', location_id: locByKode[locKey] || null,
@@ -1544,11 +1736,12 @@
       if (!empRows.length) { btn.disabled = false; btn.textContent = 'Import Sekarang'; st.style.color = 'var(--red)'; st.textContent = 'Tidak ada baris valid.'; return; }
 
       st.textContent = 'Menyimpan ' + empRows.length + ' karyawan ke Supabase...';
-      sb.from('hris_employees').upsert(empRows, { onConflict: 'nik_karyawan' }).select('id, nik_karyawan').then(function(res) {
+      sb.from('hris_employees').upsert(empRows, { onConflict: 'company_id,nik_karyawan' }).select('id, nik_karyawan').then(function(res) {
         if (res.error) { btn.disabled = false; btn.textContent = 'Import Sekarang'; st.style.color = 'var(--red)'; st.textContent = 'Gagal: ' + res.error.message; return; }
         var bpjsRows = (res.data || []).map(function(emp) {
           var m = bpjsMeta[emp.nik_karyawan] || {};
           return {
+            company_id: activeCompany.id,
             employee_id: emp.id, no_jkn: m.no_jkn || null, faskes_tk1: m.faskes_tk1 || null,
             status_jkn: m.no_jkn ? 'AKTIF' : 'BELUM_DAFTAR',
             no_kpj: m.no_kpj || null, status_kpj: m.no_kpj ? 'AKTIF' : 'BELUM_DAFTAR'
@@ -1567,13 +1760,31 @@
 
   function saveSettings(e) {
     e.preventDefault();
-    sb.from('hris_settings').update({
+    if (!activeCompany) return;
+    var newBranding = Object.assign({}, activeCompany.branding || {}, {
       company_name: document.getElementById('s-comp').value.trim(),
       app_subtitle: document.getElementById('s-sub').value.trim(),
+      logo_url: document.getElementById('s-logo').value.trim(),
       primary_color: document.getElementById('s-col').value,
-      drive_webhook_url: document.getElementById('s-drv').value.trim(),
       admin_wa: document.getElementById('s-wa').value.trim()
-    }).eq('id', 1).then(function(r){ if(r.error) alert(r.error.message); else { alert('Tersimpan!'); loadHrData(); } });
+    });
+    // Merge agar key integrasi modul lain (misal supply_*) tidak tertimpa
+    var newIntegrations = Object.assign({}, activeCompany.integrations || {}, {
+      people_drive_webhook: document.getElementById('s-drv').value.trim(),
+      people_drive_secret: document.getElementById('s-drv-sec').value.trim()
+    });
+
+    sb.from('companies').update({
+      branding: newBranding,
+      integrations: newIntegrations,
+      updated_at: new Date().toISOString()
+    }).eq('id', activeCompany.id).then(function(r){
+      if (r.error) { alert(r.error.message); return; }
+      activeCompany.branding = newBranding;
+      activeCompany.integrations = newIntegrations;
+      applyBranding(newBranding, hasFeature('custom_whitelabel'));
+      alert('Pengaturan perusahaan tersimpan!');
+    });
   }
 
   function downloadCSV(name, rows) {
