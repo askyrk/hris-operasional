@@ -385,7 +385,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Karyawan</th><th>Lokasi Aktual</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Wajah (M / P)</th><th>Keterangan</th><th>Foto</th></tr></thead>
+                <thead><tr><th>Karyawan</th><th>Lokasi Aktual</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Wajah (M / P)</th><th>Keterangan</th><th>Foto</th><th>Aksi</th></tr></thead>
                 <tbody id="absen-body"></tbody>
               </table>
             </div>
@@ -518,7 +518,7 @@
             <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn-primary" style="padding:10px;">Simpan</button></div>
           </form>
         </div>
-        <div class="card"><div class="table-wrap"><table><thead><tr><th>Kode</th><th>Nama Lokasi</th><th>Kota</th><th>Koordinat</th><th>Radius</th></tr></thead><tbody id="loc-body"></tbody></table></div></div>
+        <div class="card"><div class="table-wrap"><table><thead><tr><th>Kode</th><th>Nama Lokasi</th><th>Kota</th><th>Koordinat</th><th>Radius</th><th>Aksi</th></tr></thead><tbody id="loc-body"></tbody></table></div></div>
       </section>
 
       <section id="page-set" class="hidden">
@@ -682,6 +682,12 @@
   }
 
   function getTodayWIB() { return new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10); }
+  function getHHMMWIB(iso) { return iso ? new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString().slice(11, 16) : ''; }
+  function getDateWIB(iso) { return iso ? new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString().slice(0, 10) : ''; }
+  function addDaysStr(ymd, days) {
+    var p = ymd.split('-');
+    return new Date(Date.UTC(parseInt(p[0],10), parseInt(p[1],10) - 1, parseInt(p[2],10) + days)).toISOString().slice(0, 10);
+  }
   function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function openModal(html) { document.getElementById('modal-body').innerHTML = html; document.getElementById('modal-bg').classList.remove('hidden'); }
   function closeModal() { document.getElementById('modal-bg').classList.add('hidden'); }
@@ -1066,8 +1072,8 @@
     if (a.status === 'IZIN' || a.status === 'SAKIT') return '-';
     if (a.jam_pulang) {
       if (!a.jam_masuk) return formatTimeWIB(a.jam_pulang);
-      var dIn = new Date(new Date(a.jam_masuk).getTime() + 7*3600*1000).toISOString().slice(0,10);
-      var dOut = new Date(new Date(a.jam_pulang).getTime() + 7*3600*1000).toISOString().slice(0,10);
+      var dIn = getDateWIB(a.jam_masuk);
+      var dOut = getDateWIB(a.jam_pulang);
       return formatTimeWIB(a.jam_pulang) + (dOut !== dIn ? ' (+1 hr)' : '');
     }
     if (isLupaPulang(a)) return '<span class="badge b-red">LUPA PULANG</span>';
@@ -1365,9 +1371,63 @@
     });
     var html = '';
     hrCache.locations.forEach(function(l) {
-      html += '<tr><td><strong>' + esc(l.kode_lokasi) + '</strong></td><td>' + esc(l.nama_lokasi) + '</td><td>' + esc(l.kota) + '</td><td>' + l.latitude + ', ' + l.longitude + '</td><td>' + l.radius_meter + ' m</td></tr>';
+      html += '<tr><td><strong>' + esc(l.kode_lokasi) + '</strong></td><td>' + esc(l.nama_lokasi) + '</td><td>' + esc(l.kota) + '</td><td>' + l.latitude + ', ' + l.longitude + '</td><td>' + l.radius_meter + ' m</td>' +
+        '<td style="white-space:nowrap;">' +
+          '<button class="btn-outline" style="padding:5px 8px;margin-right:4px;" onclick="openLocModal(\'' + l.id + '\')">Edit</button>' +
+          '<button class="btn-no" style="padding:5px 8px;" title="Hapus lokasi" onclick="deleteLocation(\'' + l.id + '\')">✕</button>' +
+        '</td></tr>';
     });
-    document.getElementById('loc-body').innerHTML = html || '<tr><td colspan="5">Belum ada lokasi.</td></tr>';
+    document.getElementById('loc-body').innerHTML = html || '<tr><td colspan="6">Belum ada lokasi.</td></tr>';
+  }
+
+  function openLocModal(locId) {
+    var l = hrCache.locations.find(function(x){ return x.id === locId; });
+    if (!l) return;
+    openModal(
+      '<div class="modal-head"><h3>Edit Lokasi Penempatan</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
+      '<form onsubmit="saveLocModal(event,\'' + l.id + '\')">' +
+        '<div class="grid-2">' +
+          '<div class="form-group"><label>Kode Lokasi</label><input id="ml-kode" value="' + esc(l.kode_lokasi||'') + '" required /></div>' +
+          '<div class="form-group"><label>Nama Lokasi</label><input id="ml-nama" value="' + esc(l.nama_lokasi||'') + '" required /></div>' +
+          '<div class="form-group"><label>Kota</label><input id="ml-kota" value="' + esc(l.kota||'') + '" required /></div>' +
+          '<div class="form-group"><label>Radius (Meter)</label><input id="ml-rad" type="number" value="' + (l.radius_meter||100) + '" required /></div>' +
+          '<div class="form-group"><label>Latitude</label><input id="ml-lat" type="number" step="any" value="' + l.latitude + '" required /></div>' +
+          '<div class="form-group"><label>Longitude</label><input id="ml-lng" type="number" step="any" value="' + l.longitude + '" required /></div>' +
+        '</div>' +
+        '<button type="submit" class="btn-primary">Simpan Perubahan Lokasi</button>' +
+      '</form>'
+    );
+  }
+
+  function saveLocModal(ev, id) {
+    ev.preventDefault();
+    sb.from('hris_locations').update({
+      kode_lokasi: document.getElementById('ml-kode').value.trim().toUpperCase(),
+      nama_lokasi: document.getElementById('ml-nama').value.trim(),
+      kota: document.getElementById('ml-kota').value.trim(),
+      latitude: parseFloat(document.getElementById('ml-lat').value),
+      longitude: parseFloat(document.getElementById('ml-lng').value),
+      radius_meter: parseInt(document.getElementById('ml-rad').value, 10)
+    }).eq('id', id).eq('company_id', activeCompany.id).then(function(r){
+      if (r.error) alert(r.error.message);
+      else { closeModal(); loadHrData(); }
+    });
+  }
+
+  function deleteLocation(id) {
+    var l = hrCache.locations.find(function(x){ return x.id === id; });
+    var nama = l ? l.nama_lokasi : 'lokasi ini';
+    if (!confirm('Hapus lokasi "' + nama + '"?\nKaryawan yang ditempatkan di sini akan diubah penempatannya menjadi "Belum Diatur".')) return;
+    var cid = activeCompany.id;
+    Promise.all([
+      sb.from('hris_employees').update({ location_id: null }).eq('location_id', id).eq('company_id', cid),
+      sb.from('hris_attendance').update({ location_id: null }).eq('location_id', id).eq('company_id', cid)
+    ]).then(function() {
+      return sb.from('hris_locations').delete().eq('id', id).eq('company_id', cid);
+    }).then(function(r) {
+      if (r.error) alert('Gagal menghapus lokasi: ' + r.error.message);
+      else loadHrData();
+    });
   }
 
   function badgeFace(st) {
@@ -1417,9 +1477,76 @@
         : ((emp.hris_locations && emp.hris_locations.nama_lokasi) ? emp.hris_locations.nama_lokasi : '-');
       var st = (a.status === 'TERLAMBAT') ? 'HADIR' : a.status;
       var foto = (a.foto_masuk_url ? '<a href="'+a.foto_masuk_url+'" target="_blank" style="color:var(--primary);margin-right:8px;">' + (st==='IZIN'||st==='SAKIT'?'Bukti':'Masuk') + '</a>' : '') + (a.foto_pulang_url ? '<a href="'+a.foto_pulang_url+'" target="_blank" style="color:var(--blue);">Pulang</a>' : '');
-      html += '<tr><td><strong>' + esc(emp.nama_lengkap||'-') + '</strong></td><td>' + esc(loc) + '</td><td>' + formatTimeWIB(a.jam_masuk) + '</td><td>' + formatPulangCell(a) + '</td><td>' + badgeStatus(st) + '</td><td>' + formatFaceCell(a) + '</td><td>' + esc(a.keterangan || '-') + '</td><td>' + (foto||'-') + '</td></tr>';
+      html += '<tr><td><strong>' + esc(emp.nama_lengkap||'-') + '</strong></td><td>' + esc(loc) + '</td><td>' + formatTimeWIB(a.jam_masuk) + '</td><td>' + formatPulangCell(a) + '</td><td>' + badgeStatus(st) + '</td><td>' + formatFaceCell(a) + '</td><td>' + esc(a.keterangan || '-') + '</td><td>' + (foto||'-') + '</td>' +
+        '<td style="white-space:nowrap;">' +
+          '<button class="btn-outline" style="padding:5px 8px;margin-right:4px;" onclick="openAttModal(\'' + a.id + '\')">Koreksi</button>' +
+          '<button class="btn-no" style="padding:5px 8px;" title="Hapus presensi" onclick="deleteAttendance(\'' + a.id + '\')">✕</button>' +
+        '</td></tr>';
     });
-    document.getElementById('absen-body').innerHTML = html || '<tr><td colspan="8">Belum ada data presensi.</td></tr>';
+    document.getElementById('absen-body').innerHTML = html || '<tr><td colspan="9">Belum ada data presensi.</td></tr>';
+  }
+
+  function openAttModal(attId) {
+    var a = hrCache.attendance.find(function(x){ return x.id === attId; });
+    if (!a) return;
+    var emp = a.hris_employees || {};
+    var st = (a.status === 'TERLAMBAT') ? 'HADIR' : a.status;
+    var inHH = getHHMMWIB(a.jam_masuk);
+    var outHH = getHHMMWIB(a.jam_pulang);
+    var isNextDay = !!(a.jam_pulang && a.tanggal && getDateWIB(a.jam_pulang) > a.tanggal);
+    var locOpts = '<option value="">-- Sesuai Penempatan Utama --</option>' + hrCache.locations.map(function(l){
+      return '<option value="' + l.id + '" ' + (a.location_id===l.id?'selected':'') + '>' + esc(l.nama_lokasi) + ' (' + esc(l.kota) + ')</option>';
+    }).join('');
+    var stOpts = ['HADIR','DINAS_LUAR','IZIN','SAKIT'].map(function(o){
+      return '<option value="' + o + '" ' + (st===o?'selected':'') + '>' + o.replace('_',' ') + '</option>';
+    }).join('');
+
+    openModal(
+      '<div class="modal-head"><h3>Koreksi Presensi — ' + esc(emp.nama_lengkap||'-') + '</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Tanggal: <b>' + esc(a.tanggal) + '</b></div>' +
+      '<form onsubmit="saveAttModal(event,\'' + a.id + '\',\'' + esc(a.tanggal) + '\')">' +
+        '<div class="grid-2">' +
+          '<div class="form-group"><label>Status Kehadiran</label><select id="ma-st">' + stOpts + '</select></div>' +
+          '<div class="form-group"><label>Lokasi Aktual</label><select id="ma-loc">' + locOpts + '</select></div>' +
+          '<div class="form-group"><label>Jam Masuk (WIB)</label><input type="time" id="ma-in" value="' + inHH + '" /></div>' +
+          '<div class="form-group"><label>Jam Pulang (WIB — Kosongkan jika belum)</label><input type="time" id="ma-out" value="' + outHH + '" /></div>' +
+        '</div>' +
+        '<label class="chk-row" style="margin-bottom:14px;"><input type="checkbox" id="ma-nextday" ' + (isNextDay?'checked':'') + ' /> Jam pulang lewat tengah malam (+1 hari / shift malam)</label>' +
+        '<div class="form-group"><label>Keterangan / Catatan Koreksi</label><input id="ma-ket" value="' + esc(a.keterangan||'') + '" placeholder="Opsional (misal: Koreksi HR)" /></div>' +
+        '<button type="submit" class="btn-primary">Simpan Koreksi Presensi</button>' +
+      '</form>'
+    );
+  }
+
+  function saveAttModal(ev, id, tgl) {
+    ev.preventDefault();
+    var st = document.getElementById('ma-st').value;
+    var locId = document.getElementById('ma-loc').value || null;
+    var jamIn = document.getElementById('ma-in').value;
+    var jamOut = document.getElementById('ma-out').value;
+    var nextDay = document.getElementById('ma-nextday').checked;
+    var ket = document.getElementById('ma-ket').value.trim();
+
+    var payload = {
+      status: st,
+      location_id: locId,
+      jam_masuk: (st === 'IZIN' || st === 'SAKIT' || !jamIn) ? null : (tgl + 'T' + jamIn + ':00+07:00'),
+      jam_pulang: (st === 'IZIN' || st === 'SAKIT' || !jamOut) ? null : ((nextDay ? addDaysStr(tgl, 1) : tgl) + 'T' + jamOut + ':00+07:00'),
+      keterangan: ket
+    };
+
+    sb.from('hris_attendance').update(payload).eq('id', id).eq('company_id', activeCompany.id).then(function(r) {
+      if (r.error) alert('Gagal koreksi: ' + r.error.message);
+      else { closeModal(); loadAttendance(); }
+    });
+  }
+
+  function deleteAttendance(id) {
+    if (!confirm('Hapus permanen data presensi ini?')) return;
+    sb.from('hris_attendance').delete().eq('id', id).eq('company_id', activeCompany.id).then(function(r) {
+      if (r.error) alert('Gagal menghapus presensi: ' + r.error.message);
+      else loadAttendance();
+    });
   }
 
   function loadMonthlyRecap() {
@@ -1542,10 +1669,30 @@
       '<div class="form-group"><label>Alamat Lengkap</label><input id="me-alamat" value="' + esc(e.alamat||'') + '" /></div>' +
       faceBoxHtml + multiLocBoxHtml +
       '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">' +
-        '<button type="button" class="btn-outline" onclick="resetEmpPin(\'' + e.id + '\',\'' + esc(e.nik_ktp||e.nik_karyawan) + '\')">↻ Reset PIN ke 6 Digit Akhir NIK</button>' +
+        '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
+          '<button type="button" class="btn-outline" onclick="resetEmpPin(\'' + e.id + '\',\'' + esc(e.nik_ktp||e.nik_karyawan) + '\')">↻ Reset PIN</button>' +
+          '<button type="button" class="btn-no" style="padding:8px 12px;" onclick="deleteEmployee(\'' + e.id + '\')">Hapus Permanen</button>' +
+        '</div>' +
         '<button type="submit" class="btn-dark">Simpan Perubahan</button>' +
       '</div></form>'
     );
+  }
+
+  function deleteEmployee(id) {
+    var e = hrCache.employees.find(function(x){ return x.id === id; });
+    var nama = e ? e.nama_lengkap : 'karyawan ini';
+    if (!confirm('Hapus permanen "' + nama + '" beserta seluruh riwayat presensi, pengajuan, dan data BPJS-nya?\n\n(Tips: Jika karyawan resign, cukup ubah Status Kerja jadi RESIGN agar arsip tetap aman.)')) return;
+    var cid = activeCompany.id;
+    Promise.all([
+      sb.from('hris_attendance').delete().eq('employee_id', id).eq('company_id', cid),
+      sb.from('hris_requests').delete().eq('employee_id', id).eq('company_id', cid),
+      sb.from('hris_bpjs').delete().eq('employee_id', id).eq('company_id', cid)
+    ]).then(function() {
+      return sb.from('hris_employees').delete().eq('id', id).eq('company_id', cid);
+    }).then(function(r) {
+      if (r.error) alert('Gagal menghapus karyawan: ' + r.error.message);
+      else { closeModal(); loadHrData(); }
+    });
   }
 
   function saveEmpModal(ev, id) {
@@ -1703,8 +1850,9 @@
       var aksi = r.status === 'PENDING'
         ? '<button class="btn-ok" onclick="decideReq(\'' + r.id + '\',\'DISETUJUI\')">✓ Setujui</button> <button class="btn-no" onclick="decideReq(\'' + r.id + '\',\'DITOLAK\')">✕ Tolak</button>'
         : badgeStatus(r.status);
+      var delBtn = ' <button class="btn-outline" style="padding:5px 8px;color:var(--red);border-color:#FCA5A5;" title="Hapus pengajuan" onclick="deleteRequest(\'' + r.id + '\')">✕</button>';
       var bukti = r.foto_bukti_url ? '<a href="' + r.foto_bukti_url + '" target="_blank" style="color:var(--blue);font-weight:700;">Lihat</a>' : '-';
-      html += '<tr><td><strong>' + esc(emp.nama_lengkap||'-') + '</strong></td><td>' + badgeStatus(r.jenis) + '</td><td>' + r.tanggal + '</td><td>' + (r.jam_koreksi ? r.jam_koreksi.slice(0,5) : '-') + '</td><td>' + esc(r.alasan) + '</td><td>' + bukti + '</td><td>' + aksi + '</td></tr>';
+      html += '<tr><td><strong>' + esc(emp.nama_lengkap||'-') + '</strong></td><td>' + badgeStatus(r.jenis) + '</td><td>' + r.tanggal + '</td><td>' + (r.jam_koreksi ? r.jam_koreksi.slice(0,5) : '-') + '</td><td>' + esc(r.alasan) + '</td><td>' + bukti + '</td><td style="white-space:nowrap;">' + aksi + delBtn + '</td></tr>';
     });
     document.getElementById('req-body').innerHTML = html || '<tr><td colspan="7">Tidak ada pengajuan.</td></tr>';
   }
@@ -1713,6 +1861,14 @@
     if (!confirm('Yakin ' + decision + ' pengajuan ini?')) return;
     sb.rpc('hris_hr_decide_request', { p_req_id: id, p_decision: decision }).then(function(res) {
       if (res.error || !res.data || !res.data.ok) alert(res.data ? res.data.message : 'Gagal memproses.');
+      else loadHrData();
+    });
+  }
+
+  function deleteRequest(id) {
+    if (!confirm('Hapus permanen data pengajuan ini?')) return;
+    sb.from('hris_requests').delete().eq('id', id).eq('company_id', activeCompany.id).then(function(r) {
+      if (r.error) alert('Gagal menghapus pengajuan: ' + r.error.message);
       else loadHrData();
     });
   }
