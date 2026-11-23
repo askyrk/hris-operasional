@@ -88,6 +88,31 @@
     .list-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
     .list-row:last-child { border-bottom: none; }
 
+    /* OVERLAY LOADING FULLSCREEN (RINGAN UNTUK HP LAMA) */
+    .emp-overlay {
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(15, 17, 21, 0.9);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .emp-overlay-card {
+      width: 100%; max-width: 340px; background: var(--card); color: var(--text);
+      border-radius: 18px; padding: 28px 22px; text-align: center;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+    }
+    .emp-spinner {
+      width: 54px; height: 54px; margin: 0 auto 18px;
+      border: 5px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: empSpin 0.85s linear infinite;
+    }
+    @keyframes empSpin { to { transform: rotate(360deg); } }
+    .emp-check {
+      width: 60px; height: 60px; line-height: 60px; margin: 0 auto 16px;
+      border-radius: 50%; background: var(--green); color: #FFF;
+      font-size: 32px; font-weight: 900;
+    }
+    .emp-ov-title { font-size: 18px; font-weight: 900; margin-bottom: 6px; }
+    .emp-ov-sub { font-size: 14px; color: var(--muted); line-height: 1.45; }
+
     /* DASHBOARD HR */
     .hr-layout { display: flex; min-height: 100vh; }
     .sidebar { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 22px 18px; display: flex; flex-direction: column; justify-content: space-between; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
@@ -315,6 +340,17 @@
   <button id="btn-wa-admin" class="btn-wa hidden" onclick="openWaAdmin()">
     Lapor Kendala ke Admin (WhatsApp)
   </button>
+</div>
+
+<!-- OVERLAY LOADING FULLSCREEN KARYAWAN -->
+<div id="emp-overlay" class="emp-overlay hidden">
+  <div class="emp-overlay-card">
+    <div id="ov-spin" class="emp-spinner"></div>
+    <div id="ov-check" class="emp-check hidden">✓</div>
+    <div id="ov-title" class="emp-ov-title">JANGAN TUTUP HALAMAN INI</div>
+    <div id="ov-sub" class="emp-ov-sub">Sedang mencatat presensi Anda...</div>
+    <button id="ov-btn" class="btn-primary hidden" style="margin-top:18px;padding:12px;" onclick="hideOverlay()">SELESAI</button>
+  </div>
 </div>
 
 <!-- 3. DASHBOARD HR (DATA PLANE — KHUSUS PERUSAHAAN SENDIRI) -->
@@ -587,7 +623,6 @@
   var faceApiPromise = null;
   var FACE_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
 
-  // State Multi-Tenant Veropsa
   var tenantContext = { slug: null, domain: null };
   var activeCompany = null;
   var activeFeatures = {};
@@ -697,6 +732,18 @@
   function openModal(html) { document.getElementById('modal-body').innerHTML = html; document.getElementById('modal-bg').classList.remove('hidden'); }
   function closeModal() { document.getElementById('modal-bg').classList.add('hidden'); }
 
+  function showOverlay(mode, title, sub) {
+    var isOk = (mode === 'success');
+    document.getElementById('ov-spin').classList.toggle('hidden', isOk);
+    document.getElementById('ov-check').classList.toggle('hidden', !isOk);
+    document.getElementById('ov-btn').classList.toggle('hidden', !isOk);
+    document.getElementById('ov-title').textContent = title;
+    document.getElementById('ov-title').style.color = isOk ? 'var(--green)' : 'var(--text)';
+    document.getElementById('ov-sub').textContent = sub;
+    document.getElementById('emp-overlay').classList.remove('hidden');
+  }
+  function hideOverlay() { document.getElementById('emp-overlay').classList.add('hidden'); }
+
   function formatWaNumber(raw) {
     var wa = String(raw || '').replace(/\D/g, '');
     if (wa.indexOf('0') === 0) wa = '62' + wa.slice(1);
@@ -789,7 +836,7 @@
   function showLoginErr(msg) { var el = document.getElementById('login-msg'); el.textContent = msg; el.classList.remove('hidden'); }
   function toggleBox(id) { document.getElementById(id).classList.toggle('hidden'); }
 
-  // ===== FACE RECOGNITION LAZY LOADER (@vladmandic/face-api) =====
+  // ===== FACE RECOGNITION LAZY LOADER (RAMAH HP MURAH / KAMERA BURAM) =====
   function ensureFaceModels() {
     if (faceApiPromise) return faceApiPromise;
     faceApiPromise = new Promise(function(resolve, reject) {
@@ -823,7 +870,8 @@
       setTimeout(function(){ resolve({ status: 'TIMEOUT', distance: null, newDescriptor: null }); }, 10000);
     });
     var detectP = ensureFaceModels().then(function() {
-      var opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 });
+      // scoreThreshold 0.25 lebih ramah untuk kamera buram/minim cahaya tanpa menambah beban CPU
+      var opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.25 });
       return faceapi.detectSingleFace(canvas, opts).withFaceLandmarks(true).withFaceDescriptor();
     }).then(function(det) {
       if (!det || !det.descriptor) return { status: 'NO_FACE', distance: null, newDescriptor: null };
@@ -1211,50 +1259,84 @@
       });
   }
 
+  // ===== ALUR BARU: OVERLAY PENAHAN + SIMPAN JAM DULU, FOTO MENYUSUL =====
   function onPhotoCaptured(e) {
     var file = e.target.files[0]; if (!file) return;
+    var tipeNow = pendingType;
+    var isDlNow = pendingIsDL;
     var faceOn = hasFeature('people_face_rec') && empSession.data.employee && empSession.data.employee.face_rec_enabled !== false;
-    showEmpMsg(faceOn ? 'Memverifikasi foto & menyimpan presensi... Mohon tunggu.' : 'Menyimpan foto & presensi... Mohon tunggu.', true);
+
+    showOverlay('loading', 'JANGAN TUTUP HALAMAN INI', faceOn ? 'Memverifikasi wajah & mencatat jam presensi...' : 'Mencatat jam presensi Anda...');
     ['btn-masuk','btn-pulang','btn-dl-masuk','btn-dl-pulang'].forEach(function(id){ document.getElementById(id).disabled = true; });
 
     fileToCanvas(file, function(canvas) {
       verifyFaceOnCanvas(canvas).then(function(faceRes) {
         var actualLoc = currentGPS.matchedLoc || empSession.data.location;
-        var locName = pendingIsDL ? 'DINAS_LUAR' : (actualLoc ? actualLoc.nama_lokasi : 'Tanpa_Lokasi');
-        var wmLoc = pendingIsDL ? ('DINAS LUAR: ' + document.getElementById('dl-ket').value.trim()) : (actualLoc ? (actualLoc.nama_lokasi + ' (' + actualLoc.kota + ')') : 'GPS Terverifikasi');
+        var locName = isDlNow ? 'DINAS_LUAR' : (actualLoc ? actualLoc.nama_lokasi : 'Tanpa_Lokasi');
+        var dlText = document.getElementById('dl-ket').value.trim();
+        var wmLoc = isDlNow ? ('DINAS LUAR: ' + dlText) : (actualLoc ? (actualLoc.nama_lokasi + ' (' + actualLoc.kota + ')') : 'GPS Terverifikasi');
+        var ket = isDlNow ? ('[DINAS LUAR] ' + dlText) : '';
 
-        if (hasFeature('people_watermark_foto')) {
-          drawWatermarkOnCanvas(canvas, empSession.data.employee.nama_lengkap, wmLoc, pendingType);
-        }
-        var base64 = canvas.toDataURL('image/jpeg', 0.68);
-        var webhook = empSession.data.settings ? empSession.data.settings.drive_webhook_url : '';
-        var secret = empSession.data.settings ? empSession.data.settings.drive_secret : '';
-        var ket = pendingIsDL ? ('[DINAS LUAR] ' + document.getElementById('dl-ket').value.trim()) : '';
+        // TAHAP 1: Simpan jam & GPS ke Supabase DULU (< 1 detik)
+        sb.rpc('hris_emp_submit_attendance', {
+          p_nik: empSession.nik, p_pin: empSession.pin, p_tipe: tipeNow,
+          p_lat: currentGPS.lat, p_lng: currentGPS.lng, p_jarak: currentGPS.jarak,
+          p_foto_url: '', p_keterangan: ket,
+          p_location_id: (!isDlNow && currentGPS.matchedLoc) ? currentGPS.matchedLoc.id : null,
+          p_face_status: faceRes.status,
+          p_face_distance: faceRes.distance,
+          p_new_descriptor: faceRes.newDescriptor || null,
+          p_company_slug: tenantContext.slug,
+          p_domain: tenantContext.domain
+        }).then(function(res) {
+          var d = res.data;
+          if (res.error || !d || !d.ok) {
+            hideOverlay();
+            showEmpMsg(d && d.message ? d.message : 'Gagal simpan presensi', false);
+            updateEmpButtons();
+            return;
+          }
 
-        function saveDb(fotoUrl) {
-          sb.rpc('hris_emp_submit_attendance', {
-            p_nik: empSession.nik, p_pin: empSession.pin, p_tipe: pendingType,
-            p_lat: currentGPS.lat, p_lng: currentGPS.lng, p_jarak: currentGPS.jarak,
-            p_foto_url: fotoUrl, p_keterangan: ket,
-            p_location_id: (!pendingIsDL && currentGPS.matchedLoc) ? currentGPS.matchedLoc.id : null,
-            p_face_status: faceRes.status,
-            p_face_distance: faceRes.distance,
-            p_new_descriptor: faceRes.newDescriptor || null,
-            p_company_slug: tenantContext.slug,
-            p_domain: tenantContext.domain
-          }).then(function(res) {
-            var d = res.data;
-            if (res.error || !d || !d.ok) { showEmpMsg(d && d.message ? d.message : 'Gagal simpan presensi', false); updateEmpButtons(); return; }
-            if (faceRes.newDescriptor) empSession.data.employee.face_descriptor = faceRes.newDescriptor;
-            document.getElementById('dl-ket').value = '';
-            showEmpMsg('BERHASIL! ' + (pendingIsDL ? 'Dinas Luar ' : 'Presensi ') + pendingType + ' tercatat.', true);
+          if (faceRes.newDescriptor) empSession.data.employee.face_descriptor = faceRes.newDescriptor;
+          document.getElementById('dl-ket').value = '';
+          var attId = d.attendance_id;
+          var webhook = empSession.data.settings ? empSession.data.settings.drive_webhook_url : '';
+          var secret = empSession.data.settings ? empSession.data.settings.drive_secret : '';
+          var labelSukses = (isDlNow ? 'Dinas Luar ' : 'Presensi ') + tipeNow;
+
+          function finishFlow(noteSub) {
+            showOverlay('success', 'PRESENSI BERHASIL!', noteSub);
+            showEmpMsg('BERHASIL! ' + labelSukses + ' tercatat.', true);
             callEmpLogin(empSession.nik, empSession.pin, true);
-          });
-        }
+          }
 
-        if (webhook && webhook.indexOf('script.google.com') !== -1) {
-          uploadDrive(webhook, { secret: secret, lokasi: locName, tipe: pendingType, namaKaryawan: empSession.data.employee.nama_lengkap, imageBase64: base64 }, 1, function(err, url){ saveDb(err ? '' : url); });
-        } else saveDb('');
+          // TAHAP 2: Upload foto ke Google Drive & susulkan URL-nya ke Supabase
+          if (webhook && webhook.indexOf('script.google.com') !== -1 && attId) {
+            showOverlay('loading', 'JANGAN TUTUP HALAMAN INI', 'Jam sudah tercatat! Mengirim foto bukti...');
+            if (hasFeature('people_watermark_foto')) {
+              drawWatermarkOnCanvas(canvas, empSession.data.employee.nama_lengkap, wmLoc, tipeNow);
+            }
+            var base64 = canvas.toDataURL('image/jpeg', 0.68);
+            uploadDrive(webhook, {
+              secret: secret, lokasi: locName, tipe: tipeNow,
+              namaKaryawan: empSession.data.employee.nama_lengkap, imageBase64: base64
+            }, 1, function(err, url) {
+              if (!err && url) {
+                sb.rpc('hris_emp_attach_photo', {
+                  p_nik: empSession.nik, p_pin: empSession.pin,
+                  p_att_id: attId, p_tipe: tipeNow, p_foto_url: url,
+                  p_company_slug: tenantContext.slug, p_domain: tenantContext.domain
+                }).then(function() {
+                  finishFlow(labelSukses + ' dan foto bukti sudah tersimpan.');
+                });
+              } else {
+                finishFlow(labelSukses + ' sudah tersimpan (foto tertunda karena sinyal).');
+              }
+            });
+          } else {
+            finishFlow(labelSukses + ' sudah tersimpan di sistem.');
+          }
+        });
       });
     });
   }
@@ -1560,7 +1642,7 @@
     var parts = ym.split('-');
     var lastDay = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
     var startDate = ym + '-01';
-    var prevDate = addDaysStr(startDate, -1); // Tarik 1 hari sebelumnya agar jam pulang shift 24 jam tetap masuk tgl 1
+    var prevDate = addDaysStr(startDate, -1);
     var endDate = ym + '-' + String(lastDay).padStart(2, '0');
     document.getElementById('recap-body').innerHTML = '<tr><td colspan="10">Menghitung rekap bulan ' + ym + '...</td></tr>';
     sb.from('hris_attendance')
@@ -1583,7 +1665,7 @@
 
     var map = {};
     hrCache.monthlyRaw.forEach(function(a) {
-      if (!a.tanggal || a.tanggal.indexOf(ym) !== 0) return; // Abaikan baris prevDate pada hitungan total bulan ini
+      if (!a.tanggal || a.tanggal.indexOf(ym) !== 0) return;
       if (!map[a.employee_id]) map[a.employee_id] = { hadir: 0, dl: 0, izin: 0, cuti: 0, sakit: 0, lupa: 0 };
       var m = map[a.employee_id];
       if (a.status === 'DINAS_LUAR') m.dl++;
@@ -1623,7 +1705,6 @@
     var emps = hrCache.employees.filter(function(e){ return e.status_kerja === 'AKTIF' && (!locId || e.location_id === locId); });
     if (!emps.length) { alert('Tidak ada karyawan aktif untuk diekspor.'); return; }
 
-    // Pemetaan per karyawan -> per tanggal aktual WIB (Jam Pulang otomatis jatuh di tanggal aktual / H+1)
     var grid = {};
     var statusLabel = { IZIN: 'Izin', CUTI: 'Cuti', SAKIT: 'Sakit' };
     hrCache.monthlyRaw.forEach(function(a) {
@@ -1660,7 +1741,6 @@
       }
     });
 
-    // Susun 2 baris header + isi baris karyawan
     var row1 = [''], row2 = ['Nama Karyawan'];
     var merges = [];
     for (var d = 1; d <= lastDay; d++) {
@@ -1672,7 +1752,7 @@
     }
 
     var aoa = [row1, row2];
-    var links = []; // Simpan daftar koordinat sel yang perlu diberi hyperlink foto
+    var links = [];
 
     emps.forEach(function(e, rIdx) {
       var excelRow = rIdx + 2;
@@ -1692,13 +1772,11 @@
     var ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!merges'] = merges;
 
-    // Pasang hyperlink aktif ke foto Google Drive di setiap sel jam
     links.forEach(function(lk) {
       var addr = XLSX.utils.encode_cell({ r: lk.r, c: lk.c });
       if (ws[addr]) ws[addr].l = { Target: lk.url, Tooltip: 'Buka Foto Presensi' };
     });
 
-    // Atur lebar kolom agar langsung rapi saat dibuka di Excel / Google Sheets
     var cols = [{ wch: 26 }];
     for (var d = 1; d <= lastDay; d++) cols.push({ wch: 7.5 }, { wch: 7.5 });
     ws['!cols'] = cols;
