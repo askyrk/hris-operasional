@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#EA580C" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="/manifest.json" />
   <title>Veropsa People — Portal Presensi</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -131,7 +135,7 @@
     .kpi-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
     .kpi-val { font-size: 30px; font-weight: 900; margin-top: 8px; }
     .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .toolbar input, .toolbar select { width: auto; min-width: 150px; }
+    .toolbar input, .toolbar select { width: auto; min-width: 145px; }
     .sub-tabs { display: inline-flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 16px; }
     .sub-tab { padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 700; background: transparent; color: var(--muted); }
     .sub-tab.active { background: var(--text); color: var(--card); }
@@ -286,7 +290,14 @@
           <option value="LUPA_PULANG">Lupa Presensi Pulang</option>
         </select>
       </div>
-      <div class="form-group"><label>Tanggal</label><input type="date" id="req-tgl" required /></div>
+      <div class="form-group">
+        <label id="req-tgl-label">Dari Tanggal</label>
+        <input type="date" id="req-tgl" onchange="syncReqEndDate()" required />
+      </div>
+      <div id="req-tgl-end-wrap" class="form-group">
+        <label>Sampai Tanggal (Sama jika cuma 1 hari)</label>
+        <input type="date" id="req-tgl-end" />
+      </div>
       <div id="req-jam-wrap" class="form-group hidden"><label>Jam Seharusnya (WIB)</label><input type="time" id="req-jam" value="08:00" /></div>
       <div class="form-group"><label>Alasan / Keterangan</label><input type="text" id="req-alasan" placeholder="Contoh: Cuti tahunan / Demam / Lupa klik pulang" required /></div>
       <div class="form-group"><label>Foto Bukti / Surat Dokter (Opsional)</label><input type="file" id="req-foto" accept="image/*" style="padding:8px;" /></div>
@@ -397,12 +408,37 @@
             <div class="toolbar" style="margin-bottom:14px;">
               <input type="date" id="filter-date" onchange="loadAttendance()" />
               <select id="filter-pres-loc" onchange="renderAttendanceTable()"><option value="">Semua Lokasi</option></select>
+              <select id="filter-pres-anomali" onchange="renderAttendanceTable()">
+                <option value="ALL">Semua Kondisi</option>
+                <option value="LUPA_PULANG">Lupa Pulang Saja</option>
+                <option value="FACE_WARN">Wajah Bermasalah</option>
+                <option value="DINAS_LUAR">Dinas Luar</option>
+                <option value="NON_HADIR">Izin / Cuti / Sakit</option>
+              </select>
+              <button class="btn-ok" style="padding:9px 14px;font-size:13px;" onclick="openManualAttModal()">+ Input Manual</button>
               <button class="btn-dark" onclick="exportAttendanceCSV()">⬇ Export CSV Harian</button>
             </div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Karyawan</th><th>Lokasi Aktual</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Wajah (M / P)</th><th>Keterangan</th><th>Foto</th><th>Aksi</th></tr></thead>
                 <tbody id="absen-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- DAFTAR BELUM ABSEN -->
+          <div class="card" style="border-left: 4px solid var(--red);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+              <div>
+                <strong style="font-size:15px;">Belum Presensi pada <span id="missing-date-label">-</span></strong>
+                <span id="missing-count-badge" class="badge b-red" style="margin-left:6px;">0 orang</span>
+              </div>
+              <button class="btn-outline" id="btn-toggle-missing" onclick="toggleMissingList()">Tampilkan / Sembunyikan</button>
+            </div>
+            <div id="missing-wrap" class="table-wrap">
+              <table>
+                <thead><tr><th>Nama Karyawan</th><th>Jabatan</th><th>Penempatan Utama</th><th>No. HP</th><th>Aksi Cepat</th></tr></thead>
+                <tbody id="missing-body"></tbody>
               </table>
             </div>
           </div>
@@ -592,6 +628,7 @@
     document.getElementById('filter-date').value = today;
     document.getElementById('filter-month').value = today.slice(0, 7);
     document.getElementById('req-tgl').value = today;
+    document.getElementById('req-tgl-end').value = today;
     if (window.location.hash === '#admin') setLoginMode('hr');
     loadBranding();
     checkExistingSession();
@@ -630,6 +667,17 @@
     var p = ymd.split('-');
     return new Date(Date.UTC(parseInt(p[0],10), parseInt(p[1],10) - 1, parseInt(p[2],10) + days)).toISOString().slice(0, 10);
   }
+  function countDaysInclusive(d1, d2) {
+    if (!d1 || !d2 || d2 < d1) return 1;
+    var p1 = d1.split('-'), p2 = d2.split('-');
+    var t1 = Date.UTC(parseInt(p1[0],10), parseInt(p1[1],10)-1, parseInt(p1[2],10));
+    var t2 = Date.UTC(parseInt(p2[0],10), parseInt(p2[1],10)-1, parseInt(p2[2],10));
+    return Math.round((t2 - t1) / 86400000) + 1;
+  }
+  function formatDateRange(start, end) {
+    if (!end || end <= start) return start;
+    return start + ' s/d ' + end + ' (' + countDaysInclusive(start, end) + ' hr)';
+  }
   function isNonWorkStatus(st) { return st === 'IZIN' || st === 'SAKIT' || st === 'CUTI'; }
   function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function openModal(html) { document.getElementById('modal-body').innerHTML = html; document.getElementById('modal-bg').classList.remove('hidden'); }
@@ -655,7 +703,11 @@
 
   function applyBranding(b, customWhiteLabel) {
     if (!b) return;
-    if (b.primary_color) document.documentElement.style.setProperty('--primary', b.primary_color);
+    if (b.primary_color) {
+      document.documentElement.style.setProperty('--primary', b.primary_color);
+      var metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) metaTheme.setAttribute('content', b.primary_color);
+    }
     var compName = b.company_name || 'PORTAL PRESENSI';
     document.title = 'Presensi — ' + compName;
     ['login-company','emp-company','hr-company','hr-mobile-title'].forEach(function(id){ document.getElementById(id).textContent = compName; });
@@ -952,7 +1004,15 @@
     var j = document.getElementById('req-jenis').value;
     var needJam = (j === 'LUPA_MASUK' || j === 'LUPA_PULANG');
     document.getElementById('req-jam-wrap').classList.toggle('hidden', !needJam);
+    document.getElementById('req-tgl-end-wrap').classList.toggle('hidden', needJam);
+    document.getElementById('req-tgl-label').textContent = needJam ? 'Tanggal' : 'Dari Tanggal';
     document.getElementById('req-jam').value = (j === 'LUPA_PULANG') ? '17:00' : '08:00';
+  }
+
+  function syncReqEndDate() {
+    var s = document.getElementById('req-tgl').value;
+    var eEl = document.getElementById('req-tgl-end');
+    if (s && (!eEl.value || eEl.value < s)) eEl.value = s;
   }
 
   function renderEmpReqHistory(list) {
@@ -962,7 +1022,8 @@
     var html = '';
     list.forEach(function(r) {
       var stB = r.status === 'DISETUJUI' ? 'b-green' : (r.status === 'DITOLAK' ? 'b-red' : 'b-orange');
-      html += '<div class="list-row"><div><strong>' + r.jenis.replace('_',' ') + '</strong> (' + r.tanggal + ')<br><small style="color:var(--muted)">' + esc(r.alasan) + '</small></div><span class="badge ' + stB + '">' + (r.status==='PENDING'?'MENUNGGU':r.status) + '</span></div>';
+      var tglTxt = formatDateRange(r.tanggal, r.tanggal_selesai);
+      html += '<div class="list-row"><div><strong>' + r.jenis.replace('_',' ') + '</strong> (' + tglTxt + ')<br><small style="color:var(--muted)">' + esc(r.alasan) + '</small></div><span class="badge ' + stB + '">' + (r.status==='PENDING'?'MENUNGGU':r.status) + '</span></div>';
     });
     document.getElementById('emp-req-list').innerHTML = html;
   }
@@ -973,6 +1034,9 @@
     var btn = document.getElementById('btn-req-send');
     var jenis = document.getElementById('req-jenis').value;
     var tgl = document.getElementById('req-tgl').value;
+    var isMulti = isNonWorkStatus(jenis);
+    var tglEnd = isMulti ? (document.getElementById('req-tgl-end').value || tgl) : tgl;
+    if (isMulti && tglEnd < tgl) { showEmpMsg('Tanggal selesai tidak boleh lebih awal dari tanggal mulai.', false); return; }
     var jam = (jenis === 'LUPA_MASUK' || jenis === 'LUPA_PULANG') ? document.getElementById('req-jam').value : '';
     var alasan = document.getElementById('req-alasan').value.trim();
     var fileInp = document.getElementById('req-foto');
@@ -981,13 +1045,17 @@
     function sendRpc(fotoUrl) {
       sb.rpc('hris_emp_submit_request', {
         p_nik: empSession.nik, p_pin: empSession.pin, p_jenis: jenis,
-        p_tanggal: tgl, p_jam: jam, p_alasan: alasan, p_foto_url: fotoUrl,
+        p_tanggal: tgl, p_tanggal_selesai: tglEnd,
+        p_jam: jam, p_alasan: alasan, p_foto_url: fotoUrl,
         p_company_slug: tenantContext.slug, p_domain: tenantContext.domain
       }).then(function(res) {
         btn.disabled = false; btn.textContent = 'KIRIM PENGAJUAN';
         if (res.error || !res.data || !res.data.ok) { showEmpMsg(res.data ? res.data.message : 'Gagal kirim pengajuan.', false); return; }
         e.target.reset();
-        document.getElementById('req-tgl').value = getTodayWIB();
+        var today = getTodayWIB();
+        document.getElementById('req-tgl').value = today;
+        document.getElementById('req-tgl-end').value = today;
+        onReqJenisChange();
         document.getElementById('box-req-form').classList.add('hidden');
         showEmpMsg('Pengajuan terkirim ke HR! Tunggu persetujuan.', true);
         callEmpLogin(empSession.nik, empSession.pin, true);
@@ -1415,6 +1483,13 @@
     return '<span style="color:var(--muted)">-</span>';
   }
 
+  function isFaceWarn(a) {
+    if (isNonWorkStatus(a.status)) return false;
+    var fm = a.face_status_masuk || a.face_status;
+    var fp = a.face_status_pulang;
+    return (fm === 'MISMATCH' || fm === 'NO_FACE' || fm === 'TIMEOUT' || fp === 'MISMATCH' || fp === 'NO_FACE' || fp === 'TIMEOUT');
+  }
+
   function formatFaceCell(a) {
     if (isNonWorkStatus(a.status)) return '-';
     var fm = a.face_status_masuk || a.face_status;
@@ -1439,11 +1514,22 @@
     });
   }
 
+  function toggleMissingList() {
+    document.getElementById('missing-wrap').classList.toggle('hidden');
+  }
+
   function renderAttendanceTable() {
     var locId = document.getElementById('filter-pres-loc').value;
+    var anomali = document.getElementById('filter-pres-anomali').value;
     var rows = hrCache.attendance.filter(function(a){
-      var actualLocId = a.location_id || (a.hris_employees && a.hris_employees.location_id);
-      return !locId || actualLocId === locId;
+      var emp = a.hris_employees || {};
+      var actualLocId = a.location_id || emp.location_id;
+      if (locId && actualLocId !== locId) return false;
+      if (anomali === 'LUPA_PULANG') return isLupaPulang(a, !!emp.is_shift_24h);
+      if (anomali === 'FACE_WARN') return isFaceWarn(a);
+      if (anomali === 'DINAS_LUAR') return a.status === 'DINAS_LUAR';
+      if (anomali === 'NON_HADIR') return isNonWorkStatus(a.status);
+      return true;
     });
     var html = '';
     rows.forEach(function(a) {
@@ -1459,7 +1545,126 @@
           '<button class="btn-no" style="padding:5px 8px;" title="Hapus presensi" onclick="deleteAttendance(\'' + a.id + '\')">✕</button>' +
         '</td></tr>';
     });
-    document.getElementById('absen-body').innerHTML = html || '<tr><td colspan="9">Belum ada data presensi.</td></tr>';
+    document.getElementById('absen-body').innerHTML = html || '<tr><td colspan="9">Tidak ada data presensi sesuai filter.</td></tr>';
+    renderMissingAttendance();
+  }
+
+  function renderMissingAttendance() {
+    var tgl = document.getElementById('filter-date').value || getTodayWIB();
+    var locId = document.getElementById('filter-pres-loc').value;
+    document.getElementById('missing-date-label').textContent = tgl;
+
+    var presentMap = {};
+    hrCache.attendance.forEach(function(a){ presentMap[a.employee_id] = true; });
+
+    var missing = hrCache.employees.filter(function(e){
+      return e.status_kerja === 'AKTIF' && !presentMap[e.id] && (!locId || e.location_id === locId);
+    });
+    var badge = document.getElementById('missing-count-badge');
+    badge.textContent = missing.length + ' orang';
+    badge.className = 'badge ' + (missing.length > 0 ? 'b-red' : 'b-green');
+
+    var html = '';
+    missing.forEach(function(e) {
+      var loc = e.hris_locations ? (e.hris_locations.nama_lokasi + ' (' + e.hris_locations.kota + ')') : '-';
+      html += '<tr><td><strong>' + esc(e.nama_lengkap) + '</strong></td><td>' + esc(e.jabatan || '-') + '</td><td>' + esc(loc) + '</td><td>' + esc(e.no_hp || '-') + '</td>' +
+        '<td><button class="btn-outline" style="padding:5px 9px;" onclick="openManualAttModal(\'' + e.id + '\')">+ Input Manual</button></td></tr>';
+    });
+    document.getElementById('missing-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--green);font-weight:700;">Semua karyawan aktif pada filter ini sudah tercatat presensinya.</td></tr>';
+  }
+
+  // ===== INPUT PRESENSI MANUAL OLEH HR =====
+  function openManualAttModal(preEmpId) {
+    var tgl = document.getElementById('filter-date').value || getTodayWIB();
+    var activeEmps = hrCache.employees.filter(function(e){ return e.status_kerja === 'AKTIF'; });
+    if (!activeEmps.length) { alert('Belum ada karyawan aktif.'); return; }
+
+    var empOpts = activeEmps.map(function(e){
+      var loc = e.hris_locations ? (' — ' + e.hris_locations.nama_lokasi) : '';
+      return '<option value="' + e.id + '" ' + (preEmpId===e.id?'selected':'') + '>' + esc(e.nama_lengkap) + esc(loc) + '</option>';
+    }).join('');
+    var locOpts = '<option value="">-- Sesuai Penempatan Utama Karyawan --</option>' + hrCache.locations.map(function(l){
+      return '<option value="' + l.id + '">' + esc(l.nama_lokasi) + ' (' + esc(l.kota) + ')</option>';
+    }).join('');
+
+    openModal(
+      '<div class="modal-head"><h3>+ Input Presensi Manual (HR)</h3><button class="btn-outline" onclick="closeModal()">✕</button></div>' +
+      '<form onsubmit="saveManualAttModal(event)">' +
+        '<div class="form-group"><label>Pilih Karyawan</label><select id="mn-emp" required>' + empOpts + '</select></div>' +
+        '<div class="grid-2">' +
+          '<div class="form-group"><label>Status Kehadiran</label><select id="mn-st" onchange="onManualStChange()"><option value="HADIR">HADIR</option><option value="DINAS_LUAR">DINAS LUAR</option><option value="IZIN">IZIN</option><option value="CUTI">CUTI</option><option value="SAKIT">SAKIT</option></select></div>' +
+          '<div class="form-group"><label>Lokasi Aktual</label><select id="mn-loc">' + locOpts + '</select></div>' +
+          '<div class="form-group"><label id="mn-tgl-lbl">Tanggal</label><input type="date" id="mn-tgl" value="' + tgl + '" onchange="syncManualEndDate()" required /></div>' +
+          '<div class="form-group hidden" id="mn-tgl-end-wrap"><label>Sampai Tanggal (Multi-Hari)</label><input type="date" id="mn-tgl-end" value="' + tgl + '" /></div>' +
+        '</div>' +
+        '<div id="mn-time-wrap">' +
+          '<div class="grid-2">' +
+            '<div class="form-group"><label>Jam Masuk (WIB)</label><input type="time" id="mn-in" value="07:00" /></div>' +
+            '<div class="form-group"><label>Jam Pulang (WIB — Kosongkan jika belum)</label><input type="time" id="mn-out" value="16:00" /></div>' +
+          '</div>' +
+          '<label class="chk-row" style="margin-bottom:14px;"><input type="checkbox" id="mn-nextday" /> Jam pulang lewat tengah malam (+1 hari / shift 24 jam)</label>' +
+        '</div>' +
+        '<div class="form-group"><label>Keterangan</label><input id="mn-ket" placeholder="Contoh: Input manual HR / Izin via WA / HP rusak" /></div>' +
+        '<button type="submit" id="btn-mn-save" class="btn-primary">Simpan Presensi Manual</button>' +
+      '</form>'
+    );
+  }
+
+  function onManualStChange() {
+    var st = document.getElementById('mn-st').value;
+    var nonWork = isNonWorkStatus(st);
+    document.getElementById('mn-time-wrap').classList.toggle('hidden', nonWork);
+    document.getElementById('mn-tgl-end-wrap').classList.toggle('hidden', !nonWork);
+    document.getElementById('mn-tgl-lbl').textContent = nonWork ? 'Dari Tanggal' : 'Tanggal';
+  }
+
+  function syncManualEndDate() {
+    var s = document.getElementById('mn-tgl').value;
+    var eEl = document.getElementById('mn-tgl-end');
+    if (s && (!eEl.value || eEl.value < s)) eEl.value = s;
+  }
+
+  function saveManualAttModal(ev) {
+    ev.preventDefault();
+    var empId = document.getElementById('mn-emp').value;
+    var emp = hrCache.employees.find(function(x){ return x.id === empId; });
+    var st = document.getElementById('mn-st').value;
+    var locId = document.getElementById('mn-loc').value || (emp ? emp.location_id : null);
+    var tglStart = document.getElementById('mn-tgl').value;
+    var tglEnd = isNonWorkStatus(st) ? (document.getElementById('mn-tgl-end').value || tglStart) : tglStart;
+    if (tglEnd < tglStart) { alert('Tanggal selesai tidak boleh lebih awal dari tanggal mulai.'); return; }
+    if (countDaysInclusive(tglStart, tglEnd) > 31) { alert('Maksimal input sekaligus 31 hari.'); return; }
+
+    var jamIn = document.getElementById('mn-in').value;
+    var jamOut = document.getElementById('mn-out').value;
+    var nextDay = document.getElementById('mn-nextday').checked;
+    var ket = document.getElementById('mn-ket').value.trim() || ('[INPUT HR] ' + st);
+
+    var rows = [];
+    var d = tglStart;
+    while (d <= tglEnd) {
+      rows.push({
+        company_id: activeCompany.id,
+        employee_id: empId,
+        location_id: locId,
+        tanggal: d,
+        status: st,
+        jam_masuk: (isNonWorkStatus(st) || !jamIn) ? null : (d + 'T' + jamIn + ':00+07:00'),
+        jam_pulang: (isNonWorkStatus(st) || !jamOut) ? null : ((nextDay ? addDaysStr(d, 1) : d) + 'T' + jamOut + ':00+07:00'),
+        keterangan: ket,
+        face_status: 'DISABLED',
+        face_status_masuk: 'DISABLED'
+      });
+      d = addDaysStr(d, 1);
+    }
+
+    var btn = document.getElementById('btn-mn-save');
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    sb.from('hris_attendance').insert(rows).then(function(r) {
+      btn.disabled = false; btn.textContent = 'Simpan Presensi Manual';
+      if (r.error) alert('Gagal menyimpan: ' + r.error.message);
+      else { closeModal(); loadAttendance(); }
+    });
   }
 
   function openAttModal(attId) {
@@ -1948,7 +2153,7 @@
         : badgeStatus(r.status);
       var delBtn = ' <button class="btn-outline" style="padding:5px 8px;color:var(--red);border-color:#FCA5A5;" title="Hapus pengajuan" onclick="deleteRequest(\'' + r.id + '\')">✕</button>';
       var bukti = r.foto_bukti_url ? '<a href="' + r.foto_bukti_url + '" target="_blank" style="color:var(--blue);font-weight:700;">Lihat</a>' : '-';
-      html += '<tr><td><strong>' + esc(emp.nama_lengkap||'-') + '</strong></td><td>' + badgeStatus(r.jenis) + '</td><td>' + r.tanggal + '</td><td>' + (r.jam_koreksi ? r.jam_koreksi.slice(0,5) : '-') + '</td><td>' + esc(r.alasan) + '</td><td>' + bukti + '</td><td style="white-space:nowrap;">' + aksi + delBtn + '</td></tr>';
+      html += '<tr><td><strong>' + esc(emp.nama_lengkap||'-') + '</strong></td><td>' + badgeStatus(r.jenis) + '</td><td>' + formatDateRange(r.tanggal, r.tanggal_selesai) + '</td><td>' + (r.jam_koreksi ? r.jam_koreksi.slice(0,5) : '-') + '</td><td>' + esc(r.alasan) + '</td><td>' + bukti + '</td><td style="white-space:nowrap;">' + aksi + delBtn + '</td></tr>';
     });
     document.getElementById('req-body').innerHTML = html || '<tr><td colspan="7">Tidak ada pengajuan.</td></tr>';
   }
