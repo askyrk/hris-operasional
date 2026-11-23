@@ -742,7 +742,10 @@
     });
   }
 
-  function getEmpStorageKey() { return 'hris_emp_cred_' + (tenantContext.slug || 'default'); }
+  function getEmpStorageKey() {
+  var slugParam = (new URLSearchParams(window.location.search).get('c') || '').trim().toLowerCase();
+  return 'hris_emp_cred_' + (slugParam || window.location.hostname.toLowerCase());
+}
 
   function checkExistingSession() {
     sb.auth.getSession().then(function(res) {
