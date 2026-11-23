@@ -1,0 +1,9 @@
+{
+  "name": "Portal Presensi Karyawan",
+  "short_name": "Presensi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F6F6F5",
+  "theme_color": "#EA580C",
+  "orientation": "portrait"
+}
