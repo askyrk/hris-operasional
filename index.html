@@ -531,6 +531,7 @@
             <div><label>NIK KTP (16 Digit — Login)</label><input id="f-ktp" placeholder="3515..." oninput="autoPinFromKtp()" required /></div>
             <div><label>No. KK (16 Digit)</label><input id="f-kk" placeholder="3515..." /></div>
             <div><label>Nama Lengkap</label><input id="f-nama" placeholder="Nama sesuai KTP" required /></div>
+            <div><label>Tanggal Lahir</label><input type="date" id="f-lahir" /></div>
             <div><label>Kategori</label><select id="f-kat"><option value="OS">OS</option><option value="INTERNAL">INTERNAL</option></select></div>
             <div><label>Jabatan</label><input id="f-jab" placeholder="Security / Driver / Admin" /></div>
             <div><label>Penempatan Utama</label><select id="f-loc"></select></div>
@@ -2203,6 +2204,10 @@
       no_rekening: document.getElementById('f-rek').value.trim(), alamat: document.getElementById('f-alamat').value.trim(),
       is_shift_24h: document.getElementById('f-24h').checked,
       pin_code: pin, pin: pin
+      no_hp: document.getElementById('f-hp').value.trim(), nama_bank: document.getElementById('f-bank').value.trim(),
+      no_rekening: document.getElementById('f-rek').value.trim(), alamat: document.getElementById('f-alamat').value.trim(),
+      tanggal_lahir: document.getElementById('f-lahir').value || null,
+      is_shift_24h: document.getElementById('f-24h').checked,
     }]).select().single().then(function(r) {
       if (r.error) { alert(r.error.message); return; }
       sb.from('hris_bpjs').insert([{ company_id: activeCompany.id, employee_id: r.data.id }]).then(function(){ e.target.reset(); loadHrData(); });
@@ -2212,11 +2217,21 @@
   function downloadEmpTemplate() {
     var sampleKode = hrCache.locations.length ? hrCache.locations[0].kode_lokasi : 'LOC-01';
     var rows = [
-      ['nik_ktp','no_kk','nama_lengkap','kategori','jabatan','kode_lokasi','no_hp','alamat','nama_bank','no_rekening','shift_24_jam','no_jkn','faskes_tk1','no_kpj'],
-      ['3515012345670001','3515019999990001','Budi Santoso','OS','Security',sampleKode,'081234567890','Jl. Merdeka No 1','BRI','123401000123501','YA','','',''],
-      ['3515012345670002','3515019999990002','Siti Aminah','INTERNAL','Admin',sampleKode,'081298765432','Perum Indah Blok A','Mandiri','1420012345678','TIDAK','0001234567890','Puskesmas Setempat','19001234567']
+      ['nik_ktp','no_kk','nama_lengkap','tanggal_lahir','kategori','jabatan','kode_lokasi','no_hp','alamat','nama_bank','no_rekening','shift_24_jam','no_jkn','faskes_tk1','no_kpj'],
+      ['3515012345670001','3515019999990001','Budi Santoso','1995-08-17','OS','Security',sampleKode,'081234567890','Jl. Merdeka No 1','BRI','123401000123501','YA','','',''],
+      ['3515012345670002','3515019999990002','Siti Aminah','1998-03-25','INTERNAL','Admin',sampleKode,'081298765432','Perum Indah Blok A','Mandiri','1420012345678','TIDAK','0001234567890','Puskesmas Setempat','19001234567']
     ];
     downloadCSV('template_import_karyawan_lengkap.csv', rows);
+  }
+
+  function parseCsvDate(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return null;
+    var ymd = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (ymd) return ymd[1] + '-' + String(ymd[2]).padStart(2, '0') + '-' + String(ymd[3]).padStart(2, '0');
+    var dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dmy) return dmy[3] + '-' + String(dmy[2]).padStart(2, '0') + '-' + String(dmy[1]).padStart(2, '0');
+    return null;
   }
 
   function parseCSVLine(line, delim) {
@@ -2270,7 +2285,8 @@
         empRows.push({
           company_id: activeCompany.id,
           nik_karyawan: keyId, nik_ktp: nikKtp, no_kk: (obj.no_kk || '').replace(/[^0-9]/g, ''),
-          nama_lengkap: nama, kategori: (obj.kategori || 'OS').toUpperCase() === 'INTERNAL' ? 'INTERNAL' : 'OS',
+          nama_lengkap: nama, tanggal_lahir: parseCsvDate(obj.tanggal_lahir || obj.tgl_lahir),
+          kategori: (obj.kategori || 'OS').toUpperCase() === 'INTERNAL' ? 'INTERNAL' : 'OS',
           jabatan: obj.jabatan || '', location_id: locByKode[locKey] || null,
           no_hp: obj.no_hp || '', alamat: obj.alamat || '', nama_bank: obj.nama_bank || '', no_rekening: obj.no_rekening || '',
           is_shift_24h: is24h,
@@ -2357,8 +2373,8 @@
     downloadCSV('kontrol_bpjs_'+getTodayWIB()+'.csv', rows);
   }
   function exportMasterEmpCSV() {
-    var rows = [['NIK KTP','No KK','Nama Lengkap','Kategori','Jabatan','Penempatan Utama','Shift 24 Jam','No HP','Alamat','Nama Bank','No Rekening','Tgl Masuk','Status Kerja']];
-    hrCache.employees.forEach(function(e){ var l=e.hris_locations?e.hris_locations.nama_lokasi:'-'; rows.push([e.nik_ktp,e.no_kk,e.nama_lengkap,e.kategori,e.jabatan,l,e.is_shift_24h?'YA':'TIDAK',e.no_hp,e.alamat,e.nama_bank,e.no_rekening,e.tanggal_masuk,e.status_kerja]); });
+    var rows = [['NIK KTP','No KK','Nama Lengkap','Tgl Lahir','Kategori','Jabatan','Penempatan Utama','Shift 24 Jam','No HP','Alamat','Nama Bank','No Rekening','Tgl Masuk','Status Kerja']];
+    hrCache.employees.forEach(function(e){ var l=e.hris_locations?e.hris_locations.nama_lokasi:'-'; rows.push([e.nik_ktp,e.no_kk,e.nama_lengkap,e.tanggal_lahir||'',e.kategori,e.jabatan,l,e.is_shift_24h?'YA':'TIDAK',e.no_hp,e.alamat,e.nama_bank,e.no_rekening,e.tanggal_masuk,e.status_kerja]); });
     downloadCSV('master_karyawan_'+getTodayWIB()+'.csv', rows);
   }
 </script>
