@@ -426,7 +426,6 @@
             </div>
           </div>
 
-          <!-- DAFTAR BELUM ABSEN -->
           <div class="card" style="border-left: 4px solid var(--red);">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
               <div>
@@ -514,7 +513,7 @@
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
             <div>
               <strong style="font-size:15px;">Import Massal Karyawan (CSV)</strong>
-              <div style="font-size:12px; color:var(--muted); margin-top:2px;">Sekali upload: Biodata (KTP, KK, Alamat, HP, Bank, Rekening, Shift 24 Jam) + PIN otomatis 6 digit akhir NIK + Kontrol BPJS (JKN & KPJ).</div>
+              <div style="font-size:12px; color:var(--muted); margin-top:2px;">Sekali upload: Biodata (KTP, KK, Tgl Lahir, Alamat, HP, Bank, Rekening, Shift 24 Jam) + PIN otomatis 6 digit akhir NIK + Kontrol BPJS (JKN & KPJ).</div>
             </div>
             <button class="btn-outline" onclick="downloadEmpTemplate()">⬇ Download Template CSV Lengkap</button>
           </div>
@@ -744,9 +743,9 @@
   }
 
   function getEmpStorageKey() {
-  var slugParam = (new URLSearchParams(window.location.search).get('c') || '').trim().toLowerCase();
-  return 'hris_emp_cred_' + (slugParam || window.location.hostname.toLowerCase());
-}
+    var slugParam = (new URLSearchParams(window.location.search).get('c') || '').trim().toLowerCase();
+    return 'hris_emp_cred_' + (slugParam || window.location.hostname.toLowerCase());
+  }
 
   function checkExistingSession() {
     sb.auth.getSession().then(function(res) {
@@ -2198,16 +2197,14 @@
     sb.from('hris_employees').insert([{
       company_id: activeCompany.id,
       nik_karyawan: ktp, nik_ktp: ktp, no_kk: document.getElementById('f-kk').value.trim(),
-      nama_lengkap: document.getElementById('f-nama').value.trim(), kategori: document.getElementById('f-kat').value,
+      nama_lengkap: document.getElementById('f-nama').value.trim(),
+      tanggal_lahir: document.getElementById('f-lahir').value || null,
+      kategori: document.getElementById('f-kat').value,
       jabatan: document.getElementById('f-jab').value.trim(), location_id: document.getElementById('f-loc').value || null,
       no_hp: document.getElementById('f-hp').value.trim(), nama_bank: document.getElementById('f-bank').value.trim(),
       no_rekening: document.getElementById('f-rek').value.trim(), alamat: document.getElementById('f-alamat').value.trim(),
       is_shift_24h: document.getElementById('f-24h').checked,
       pin_code: pin, pin: pin
-      no_hp: document.getElementById('f-hp').value.trim(), nama_bank: document.getElementById('f-bank').value.trim(),
-      no_rekening: document.getElementById('f-rek').value.trim(), alamat: document.getElementById('f-alamat').value.trim(),
-      tanggal_lahir: document.getElementById('f-lahir').value || null,
-      is_shift_24h: document.getElementById('f-24h').checked,
     }]).select().single().then(function(r) {
       if (r.error) { alert(r.error.message); return; }
       sb.from('hris_bpjs').insert([{ company_id: activeCompany.id, employee_id: r.data.id }]).then(function(){ e.target.reset(); loadHrData(); });
