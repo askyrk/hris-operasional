@@ -169,4 +169,341 @@
             <button onclick="loadHrData(true)" class="self-start sm:self-auto px-4 py-2 rounded-xl text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90">↻ Muat Ulang</button>
           </div>
 
-          <div class="grid grid-cols-2 lg:grid-cols-
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+              <span class="text-xs font-medium text-slate-500">Karyawan Aktif</span>
+              <div id="k-emp" class="text-3xl font-bold tabular-nums mt-2">0</div>
+            </div>
+            <div data-feature="people_presensi" class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+              <span class="text-xs font-medium text-slate-500">Presensi Hari Ini</span>
+              <div id="k-hadir" class="text-3xl font-bold tabular-nums mt-2 text-emerald-600 dark:text-emerald-400">0</div>
+            </div>
+            <div data-feature="people_pengajuan" class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+              <span class="text-xs font-medium text-slate-500">Pengajuan Menunggu</span>
+              <div id="k-req" class="text-3xl font-bold tabular-nums mt-2 text-rose-600 dark:text-rose-400">0</div>
+            </div>
+            <div data-feature="people_bpjs" class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+              <span class="text-xs font-medium text-slate-500">BPJS Perlu Tindakan</span>
+              <div id="k-bpjs" class="text-3xl font-bold tabular-nums mt-2 text-amber-600 dark:text-amber-400">0</div>
+            </div>
+          </div>
+
+          <div data-feature="people_bpjs" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 font-bold text-sm">Peringatan Kontrol BPJS</div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead><tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500"><th class="py-3 px-4">NIK KTP</th><th class="py-3 px-4">Nama</th><th class="py-3 px-4">Status Kerja</th><th class="py-3 px-4">BPJS Kesehatan</th><th class="py-3 px-4">BPJS Ketenagakerjaan</th></tr></thead>
+                <tbody id="dash-bpjs-body" class="divide-y divide-slate-100 dark:divide-slate-800"><tr><td colspan="5" class="py-6 px-4 text-slate-400">Memuat...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 02 / PRESENSI & REKAP -->
+        <section id="page-pres" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1"><span class="font-mono text-slate-400">02</span><span>/</span><span>Kehadiran</span></div>
+              <h2 class="text-2xl font-bold tracking-tight">Presensi & Rekap</h2>
+            </div>
+            <div id="pres-head-actions-harian" class="flex items-center gap-2.5 flex-wrap">
+              <button onclick="exportAttendanceCSV()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm">⬇ Export CSV</button>
+              <button onclick="openManualAttModal()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 shadow-sm">+ Input Manual</button>
+            </div>
+            <div id="pres-head-actions-bulanan" class="hidden flex items-center gap-2.5 flex-wrap">
+              <button onclick="exportMonthlyCSV()" class="px-3.5 py-2 rounded-xl text-sm font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm">⬇ Ringkasan CSV</button>
+              <button onclick="exportMonthlyMatrixXLSX()" class="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm">⬇ Export Matriks Excel (.xlsx)</button>
+            </div>
+          </div>
+
+          <div class="inline-flex p-1 rounded-xl bg-slate-200/70 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
+            <button id="stab-harian" onclick="switchPresTab('harian')" class="px-4 py-1.5 rounded-lg text-sm font-semibold bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm">Presensi Harian</button>
+            <button id="stab-bulanan" data-feature="people_rekap_bulanan" onclick="switchPresTab('bulanan')" class="px-4 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Rekap Bulanan <span class="text-xs opacity-70 font-normal">(Siap Gajian)</span></button>
+          </div>
+
+          <!-- SUB-TAB: HARIAN -->
+          <div id="pres-harian" class="space-y-6">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <div class="flex items-center justify-between mb-2"><span class="text-xs font-medium text-slate-500">Hadir</span><span class="w-2 h-2 rounded-full bg-emerald-500"></span></div>
+                <div class="flex items-baseline gap-2"><span id="kpi-h-hadir" class="text-2xl font-bold tabular-nums">0</span><span class="text-xs text-slate-400">karyawan</span></div>
+              </div>
+              <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <div class="flex items-center justify-between mb-2"><span class="text-xs font-medium text-slate-500">Dinas Luar</span><span class="w-2 h-2 rounded-full bg-blue-500"></span></div>
+                <div class="flex items-baseline gap-2"><span id="kpi-h-dl" class="text-2xl font-bold tabular-nums">0</span><span class="text-xs text-slate-400">karyawan</span></div>
+              </div>
+              <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <div class="flex items-center justify-between mb-2"><span class="text-xs font-medium text-slate-500">Izin / Cuti / Sakit</span><span class="w-2 h-2 rounded-full bg-amber-500"></span></div>
+                <div class="flex items-baseline gap-2"><span id="kpi-h-non" class="text-2xl font-bold tabular-nums">0</span><span class="text-xs text-slate-400">karyawan</span></div>
+              </div>
+              <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <div class="flex items-center justify-between mb-2"><span class="text-xs font-medium text-slate-500">Belum Presensi</span><span id="kpi-h-belum-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span></div>
+                <div class="flex items-baseline gap-2"><span id="kpi-h-belum" class="text-2xl font-bold tabular-nums">0</span><span class="text-xs text-slate-400">karyawan</span></div>
+              </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                <div class="relative flex-1">
+                  <input id="search-pres" oninput="renderAttendanceTable()" type="text" placeholder="Cari nama karyawan atau NIK..." class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-slate-400" />
+                </div>
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
+                  <input id="filter-date" onchange="loadAttendance()" type="date" class="px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700" />
+                  <select id="filter-pres-loc" onchange="renderAttendanceTable()" class="px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700"><option value="">Semua Lokasi</option></select>
+                  <select id="filter-pres-anomali" onchange="renderAttendanceTable()" class="px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
+                    <option value="ALL">Semua Kondisi</option>
+                    <option value="LUPA_PULANG">Lupa Pulang</option>
+                    <option value="FACE_WARN">Wajah Bermasalah</option>
+                    <option value="DINAS_LUAR">Dinas Luar</option>
+                    <option value="NON_HADIR">Izin / Cuti / Sakit</option>
+                  </select>
+                </div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      <th class="py-3 px-4">Karyawan</th><th class="py-3 px-4">Lokasi Aktual</th><th class="py-3 px-4">Masuk</th><th class="py-3 px-4">Pulang</th><th class="py-3 px-4">Status</th><th class="py-3 px-4">Verifikasi Wajah</th><th class="py-3 px-4">Keterangan</th><th class="py-3 px-4">Foto</th><th class="py-3 px-4 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="absen-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                </table>
+              </div>
+              <div class="px-4 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 bg-slate-50/40 dark:bg-slate-900">
+                <span id="table-count-info">Menampilkan 0 catatan presensi</span>
+                <span id="active-date-badge" class="font-mono text-[11px] text-slate-400">-</span>
+              </div>
+            </div>
+
+            <!-- KARTU BELUM PRESENSI ADAPTIF -->
+            <div id="belum-card" class="rounded-2xl border transition-all overflow-hidden bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-800/50">
+              <div id="belum-state-zero" class="p-4 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">✓</div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-semibold">Belum Presensi (<span id="belum-date-zero">-</span>)</h3>
+                    <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">0 orang</span>
+                  </div>
+                  <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5">Semua karyawan aktif pada filter ini sudah tercatat presensinya.</p>
+                </div>
+              </div>
+
+              <div id="belum-state-active" class="hidden">
+                <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/70 dark:border-amber-800/50">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">!</div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-semibold">Belum Presensi (<span id="belum-date-active">-</span>)</h3>
+                        <span id="belum-count-badge" class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">0 orang</span>
+                      </div>
+                      <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5">Karyawan berikut belum tercatat presensinya pada tanggal ini.</p>
+                    </div>
+                  </div>
+                  <button onclick="document.getElementById('missing-wrap').classList.toggle('hidden')" class="self-start sm:self-auto px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">Tampilkan / Sembunyikan</button>
+                </div>
+                <div id="missing-wrap" class="overflow-x-auto bg-white dark:bg-slate-900">
+                  <table class="w-full text-left text-sm">
+                    <thead><tr class="border-b border-slate-100 dark:border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400"><th class="py-2.5 px-4">Nama Karyawan</th><th class="py-2.5 px-4">Jabatan</th><th class="py-2.5 px-4">Penempatan Utama</th><th class="py-2.5 px-4">No. HP</th><th class="py-2.5 px-4 text-right">Aksi Cepat</th></tr></thead>
+                    <tbody id="missing-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB: REKAP BULANAN -->
+          <div id="pres-bulanan" class="hidden">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2.5">
+                <input type="month" id="filter-month" onchange="loadMonthlyRecap()" class="px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+                <select id="filter-recap-loc" onchange="renderMonthlyRecap()" class="px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"><option value="">Semua Lokasi</option></select>
+                <button onclick="loadMonthlyRecap()" class="px-3.5 py-2 rounded-xl text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900">Muat Rekap</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                  <thead><tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500"><th class="py-3 px-4">NIK KTP</th><th class="py-3 px-4">Nama Karyawan</th><th class="py-3 px-4">Lokasi Utama</th><th class="py-3 px-4">Hadir</th><th class="py-3 px-4">Dinas Luar</th><th class="py-3 px-4">Izin</th><th class="py-3 px-4">Cuti</th><th class="py-3 px-4">Sakit</th><th class="py-3 px-4">Lupa Pulang</th><th class="py-3 px-4">Total Masuk</th></tr></thead>
+                  <tbody id="recap-body" class="divide-y divide-slate-100 dark:divide-slate-800"><tr><td colspan="10" class="py-6 px-4 text-slate-400">Pilih bulan untuk melihat rekap.</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 / PENGAJUAN & IZIN -->
+        <section id="page-req" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1"><span class="font-mono text-slate-400">03</span><span>/</span><span>Persetujuan</span></div>
+              <h2 class="text-2xl font-bold tracking-tight">Pengajuan & Izin</h2>
+            </div>
+            <select id="filter-req" onchange="renderRequests()" class="self-start sm:self-auto px-3.5 py-2 text-sm rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <option value="PENDING">Menunggu Persetujuan</option>
+              <option value="ALL">Semua Riwayat</option>
+            </select>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead><tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500"><th class="py-3 px-4">Karyawan</th><th class="py-3 px-4">Jenis</th><th class="py-3 px-4">Tanggal</th><th class="py-3 px-4">Jam</th><th class="py-3 px-4">Alasan</th><th class="py-3 px-4">Bukti</th><th class="py-3 px-4 text-right">Status / Aksi</th></tr></thead>
+                <tbody id="req-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 04 / KONTROL BPJS -->
+        <section id="page-bpjs" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1"><span class="font-mono text-slate-400">04</span><span>/</span><span>Kepesertaan</span></div>
+              <h2 class="text-2xl font-bold tracking-tight">Kontrol BPJS</h2>
+            </div>
+            <button onclick="exportBpjsCSV()" class="self-start sm:self-auto px-3.5 py-2 rounded-xl text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm">⬇ Export CSV BPJS</button>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-2.5">
+              <select id="filter-bpjs-mode" onchange="renderBpjs()" class="px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <option value="ALL">Semua Karyawan</option><option value="ALERT">Perlu Tindakan Saja</option><option value="AKTIF">Aktif Semua</option>
+              </select>
+              <select id="filter-bpjs-loc" onchange="renderBpjs()" class="px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"><option value="">Semua Lokasi</option></select>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead><tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500"><th class="py-3 px-4">Karyawan</th><th class="py-3 px-4">NIK / No. KK</th><th class="py-3 px-4">Status Kerja</th><th class="py-3 px-4">JKN (Kesehatan)</th><th class="py-3 px-4">KPJ (Ketenagakerjaan)</th><th class="py-3 px-4">Tanggungan</th><th class="py-3 px-4 text-right">Aksi</th></tr></thead>
+                <tbody id="bpjs-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 05 / MASTER KARYAWAN -->
+        <section id="page-emp" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1"><span class="font-mono text-slate-400">05</span><span>/</span><span>Database SDM</span></div>
+              <h2 class="text-2xl font-bold tracking-tight">Master Karyawan</h2>
+            </div>
+            <button onclick="exportMasterEmpCSV()" class="self-start sm:self-auto px-3.5 py-2 rounded-xl text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm">⬇ Export Biodata Lengkap (CSV)</button>
+          </div>
+
+          <div data-feature="people_import_csv" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-orange-500 p-5 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+              <div>
+                <h3 class="text-sm font-bold">Import Massal Karyawan (CSV)</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Sekali upload: Biodata (KTP, KK, Tgl Lahir, Alamat, HP, Bank, Rekening, Shift 24 Jam) + PIN otomatis 6 digit akhir NIK + BPJS.</p>
+              </div>
+              <button onclick="downloadEmpTemplate()" class="self-start sm:self-auto px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">⬇ Download Template CSV</button>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <input type="file" id="csv-file" accept=".csv" class="text-xs px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 max-w-xs" />
+              <button id="btn-import-csv" onclick="importEmpCSV()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 dark:bg-white text-white dark:text-slate-900">Import Sekarang</button>
+            </div>
+            <div id="import-status" class="text-xs font-semibold mt-2"></div>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+            <h3 class="text-sm font-bold mb-4">+ Tambah Karyawan Satuan</h3>
+            <form onsubmit="addEmployee(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">NIK KTP (Login)</label><input id="f-ktp" placeholder="3515..." oninput="autoPinFromKtp()" required class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">No. KK</label><input id="f-kk" placeholder="3515..." class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Nama Lengkap</label><input id="f-nama" placeholder="Nama sesuai KTP" required class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Tanggal Lahir</label><input type="date" id="f-lahir" class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Kategori</label><select id="f-kat" class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"><option value="OS">OS</option><option value="INTERNAL">INTERNAL</option></select></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Jabatan</label><input id="f-jab" placeholder="Security / Driver / Admin" class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Penempatan Utama</label><select id="f-loc" class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"></select></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">No. HP / WA</label><input id="f-hp" placeholder="08..." class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Nama Bank</label><input id="f-bank" placeholder="BRI / Mandiri / BNI" class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">No. Rekening</label><input id="f-rek" placeholder="Nomor rekening gaji" class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Alamat Lengkap</label><input id="f-alamat" placeholder="Alamat domisili / KTP" class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">PIN (6 Digit Akhir NIK)</label><input id="f-pin" placeholder="6 angka" required class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono" /></div>
+              <div class="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-3 pt-2">
+                <label class="inline-flex items-center gap-2 text-xs font-medium cursor-pointer"><input type="checkbox" id="f-24h" class="rounded" /> Shift 24 Jam (Jaga / Security)</label>
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90">Simpan Karyawan</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-2.5">
+              <input id="search-emp" oninput="renderEmployees()" placeholder="Cari nama, NIK, atau HP..." class="flex-1 min-w-[200px] px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
+              <select id="filter-emp-loc" onchange="renderEmployees()" class="px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"><option value="">Semua Lokasi</option></select>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead><tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500"><th class="py-3 px-4">NIK KTP</th><th class="py-3 px-4">Nama & Jabatan</th><th class="py-3 px-4">Penempatan</th><th class="py-3 px-4">No. HP</th><th class="py-3 px-4">Bank / Rekening</th><th class="py-3 px-4">Status</th><th class="py-3 px-4 text-right">Aksi</th></tr></thead>
+                <tbody id="emp-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 06 / LOKASI PENEMPATAN -->
+        <section id="page-loc" class="hidden space-y-6">
+          <div>
+            <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1"><span class="font-mono text-slate-400">06</span><span>/</span><span>Geofencing</span></div>
+            <h2 class="text-2xl font-bold tracking-tight">Lokasi Penempatan</h2>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+            <h3 class="text-sm font-bold mb-4">+ Tambah Lokasi</h3>
+            <form onsubmit="addLocation(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Kode Lokasi (CSV)</label><input id="l-kode" placeholder="MJK-01" required class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Nama Lokasi</label><input id="l-nama" placeholder="Nama Kantor / Site" required class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Kota</label><input id="l-kota" placeholder="Nama Kota" required class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Latitude</label><input id="l-lat" type="number" step="any" placeholder="-7.4726" required class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Longitude</label><input id="l-lng" type="number" step="any" placeholder="112.4341" required class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Radius (Meter)</label><input id="l-rad" type="number" value="100" required class="w-full px-3 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono" /></div>
+              <div class="sm:col-span-2 lg:col-span-3 flex justify-end pt-1"><button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-white text-white dark:text-slate-900">Simpan Lokasi</button></div>
+            </form>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead><tr class="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500"><th class="py-3 px-4">Kode</th><th class="py-3 px-4">Nama Lokasi</th><th class="py-3 px-4">Kota</th><th class="py-3 px-4">Koordinat</th><th class="py-3 px-4">Radius</th><th class="py-3 px-4 text-right">Aksi</th></tr></thead>
+                <tbody id="loc-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 07 / PENGATURAN -->
+        <section id="page-set" class="hidden space-y-6">
+          <div>
+            <div class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-1"><span class="font-mono text-slate-400">07</span><span>/</span><span>White-Label & Integrasi</span></div>
+            <h2 class="text-2xl font-bold tracking-tight">Pengaturan Perusahaan</h2>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm max-w-xl">
+            <form onsubmit="saveSettings(event)" class="space-y-4">
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Nama Perusahaan</label><input id="s-comp" required class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Sub-Judul</label><input id="s-sub" required class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">URL Logo Perusahaan (Opsional)</label><input id="s-logo" placeholder="https://.../logo.png" class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Warna Aksen</label><input id="s-col" type="color" class="h-11 w-24 p-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Link Kurir Foto Google Drive</label><input id="s-drv" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Kunci Rahasia Kurir Foto (Drive Secret)</label><input id="s-drv-sec" placeholder="Kunci rahasia Apps Script klien ini" class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <div><label class="block text-xs font-medium text-slate-500 mb-1">Nomor WA Admin (Bantuan & Kendala)</label><input id="s-wa" placeholder="Contoh: 6281234567890" class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /></div>
+              <button type="submit" class="w-full py-2.5 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90">Simpan Pengaturan</button>
+            </form>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL UNIVERSAL -->
+  <div id="modal-bg" onclick="if(event.target===this) closeModal()" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div id="modal-body" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl p-5"></div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-16 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-medium shadow-lg flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 dark:bg-emerald-600"></span>
+      <span id="toast-msg">Berhasil</span>
+    </div>
+  </div>
+
+  <script src="/config.js"></script>
+  <script src="/hr.js"></script>
+</body>
+</html>
